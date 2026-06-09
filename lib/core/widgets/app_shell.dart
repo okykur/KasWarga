@@ -134,7 +134,8 @@ class AppShell extends ConsumerWidget {
     final index = items.indexWhere(
       (item) =>
           location == item.path ||
-          (item.path != '/member/bills' && location.startsWith('${item.path}/')),
+          (item.path != '/member/bills' &&
+              location.startsWith('${item.path}/')),
     );
     return index < 0 ? 0 : index;
   }
@@ -174,7 +175,7 @@ class _Sidebar extends ConsumerWidget {
                   final selected = selectedIndex == index;
                   return ListTile(
                     selected: selected,
-                    selectedTileColor: Colors.white.withOpacity(.12),
+                    selectedTileColor: Colors.white.withValues(alpha: .12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -185,7 +186,8 @@ class _Sidebar extends ConsumerWidget {
                     title: Text(
                       item.label,
                       style: TextStyle(
-                        color: selected ? Colors.white : const Color(0xFFD5E4DC),
+                        color:
+                            selected ? Colors.white : const Color(0xFFD5E4DC),
                         fontWeight:
                             selected ? FontWeight.w700 : FontWeight.w500,
                       ),
@@ -205,7 +207,7 @@ class _Sidebar extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.08),
+                  color: Colors.white.withValues(alpha: .08),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -291,6 +293,7 @@ class _ShellBrand extends StatelessWidget {
         ],
       );
 }
+
 class PageScaffold extends StatelessWidget {
   const PageScaffold({
     super.key,

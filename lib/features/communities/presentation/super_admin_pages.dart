@@ -212,13 +212,15 @@ class _CommunityFormState extends ConsumerState<_CommunityForm> {
                           postalCode: _postalCode.text,
                           isActive: _active,
                         );
-                    if (mounted) Navigator.pop(context, true);
+                    if (!mounted) return;
+                    Navigator.pop(this.context, true);
                   },
             child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
           ),
         ],
       );
 }
+
 class UsersPage extends ConsumerWidget {
   const UsersPage({super.key});
 

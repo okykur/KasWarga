@@ -201,16 +201,18 @@ class _ExpenseFormState extends ConsumerState<_ExpenseForm> {
                             communityId: widget.communityId,
                             title: _title.text,
                             description: _description.text,
-                            amount: double.parse(_amount.text.replaceAll('.', '')),
+                            amount:
+                                double.parse(_amount.text.replaceAll('.', '')),
                             expenseDate: _date,
                             userId: widget.userId,
                             receiptBytes: _receipt?.bytes,
                             receiptExtension: _receipt?.extension,
                           );
-                      if (mounted) Navigator.pop(context, true);
+                      if (!mounted) return;
+                      Navigator.pop(this.context, true);
                     } catch (error) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(content: Text('Gagal menyimpan: $error')),
                         );
                         setState(() => _saving = false);

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../models/app_models.dart';
 import '../services/app_repository.dart';
 
@@ -13,8 +14,7 @@ final profilesProvider = FutureProvider<List<UserProfile>>((ref) {
   return ref.watch(appRepositoryProvider).getProfiles();
 });
 
-final paymentAccountsProvider = FutureProvider.family<
-    List<PaymentAccount>,
+final paymentAccountsProvider = FutureProvider.family<List<PaymentAccount>,
     ({String communityId, bool activeOnly})>((ref, arg) {
   return ref.watch(appRepositoryProvider).getPaymentAccounts(
         communityId: arg.communityId,
@@ -32,8 +32,7 @@ final duesProvider =
   return ref.watch(appRepositoryProvider).getDues(communityId);
 });
 
-final billsProvider = FutureProvider.family<
-    List<Bill>,
+final billsProvider = FutureProvider.family<List<Bill>,
     ({String communityId, String? memberId, BillStatus? status})>((ref, arg) {
   return ref.watch(appRepositoryProvider).getBills(
         communityId: arg.communityId,

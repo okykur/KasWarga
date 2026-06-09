@@ -12,7 +12,8 @@ class PhoneNumberFormatter {
     if (value.startsWith('+62')) return value;
     if (value.startsWith('62')) return '+$value';
     if (value.startsWith('0')) return '+62${value.substring(1)}';
-    throw const FormatException('Nomor handphone harus diawali 08, 62, atau +62.');
+    throw const FormatException(
+        'Nomor handphone harus diawali 08, 62, atau +62.');
   }
 
   static bool isValidIndonesianPhoneNumber(String input) {

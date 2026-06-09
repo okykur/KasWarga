@@ -100,7 +100,8 @@ class AppDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      value: value,
+      key: ValueKey(value),
+      initialValue: value,
       items: items,
       onChanged: onChanged,
       validator: validator,
@@ -177,7 +178,7 @@ class DashboardCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: accent.withOpacity(.1),
+                color: accent.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: accent),
@@ -352,7 +353,7 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(

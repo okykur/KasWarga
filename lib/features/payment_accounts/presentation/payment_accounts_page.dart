@@ -143,7 +143,7 @@ class PaymentAccountCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.forest.withOpacity(.1),
+                    color: AppColors.forest.withValues(alpha: .1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -165,7 +165,7 @@ class PaymentAccountCard extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.amber.withOpacity(.16),
+                      color: AppColors.amber.withValues(alpha: .16),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: const Text(
@@ -267,8 +267,7 @@ class _PaymentAccountForm extends ConsumerStatefulWidget {
       _PaymentAccountFormState();
 }
 
-class _PaymentAccountFormState
-    extends ConsumerState<_PaymentAccountForm> {
+class _PaymentAccountFormState extends ConsumerState<_PaymentAccountForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _bank;
   late final TextEditingController _number;
@@ -304,7 +303,8 @@ class _PaymentAccountFormState
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.account == null ? 'Tambah Rekening' : 'Edit Rekening'),
+        title:
+            Text(widget.account == null ? 'Tambah Rekening' : 'Edit Rekening'),
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
@@ -391,10 +391,11 @@ class _PaymentAccountFormState
                             isActive: _isActive,
                             userId: widget.profile.id,
                           );
-                      if (mounted) Navigator.pop(context, true);
+                      if (!mounted) return;
+                      Navigator.pop(this.context, true);
                     } catch (error) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(content: Text('Gagal menyimpan: $error')),
                         );
                         setState(() => _saving = false);

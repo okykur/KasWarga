@@ -70,7 +70,7 @@ class DuesPage extends ConsumerWidget {
                     height: 48,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.forest.withOpacity(.1),
+                      color: AppColors.forest.withValues(alpha: .1),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
@@ -190,7 +190,9 @@ class _DueFormState extends ConsumerState<_DueForm> {
                               _year = int.tryParse(value) ?? _year,
                           validator: (value) {
                             final parsed = int.tryParse(value ?? '');
-                            if (parsed == null || parsed < 2020 || parsed > 2100) {
+                            if (parsed == null ||
+                                parsed < 2020 ||
+                                parsed > 2100) {
                               return 'Tahun tidak valid.';
                             }
                             return null;
@@ -209,7 +211,7 @@ class _DueFormState extends ConsumerState<_DueForm> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.amber.withOpacity(.12),
+                      color: AppColors.amber.withValues(alpha: .12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Row(
@@ -251,13 +253,15 @@ class _DueFormState extends ConsumerState<_DueForm> {
                             description: _description.text,
                             month: _month,
                             year: _year,
-                            amount: double.parse(_amount.text.replaceAll('.', '')),
+                            amount:
+                                double.parse(_amount.text.replaceAll('.', '')),
                             dueDate: _dueDate,
                           );
-                      if (mounted) Navigator.pop(context, true);
+                      if (!mounted) return;
+                      Navigator.pop(this.context, true);
                     } catch (error) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(
                             content: Text(
                               'Iuran gagal dibuat. Pastikan periode belum pernah digunakan. $error',

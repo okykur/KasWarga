@@ -48,7 +48,8 @@ class _AdminBillsPageState extends ConsumerState<AdminBillsPage> {
       ),
     );
     return PageScaffold(
-      title: widget.verificationOnly ? 'Verifikasi Pembayaran' : 'Tagihan Warga',
+      title:
+          widget.verificationOnly ? 'Verifikasi Pembayaran' : 'Tagihan Warga',
       subtitle: widget.verificationOnly
           ? 'Periksa rekening tujuan dan bukti transfer sebelum menyetujui.'
           : 'Pantau status seluruh tagihan anggota komunitas.',
@@ -414,7 +415,9 @@ class MemberBillsPage extends ConsumerWidget {
             error: (error, _) => ErrorView(message: '$error'),
             data: (items) {
               final filtered = historyOnly
-                  ? items.where((item) => item.status != BillStatus.unpaid).toList()
+                  ? items
+                      .where((item) => item.status != BillStatus.unpaid)
+                      .toList()
                   : items;
               if (filtered.isEmpty) {
                 return Card(
@@ -445,7 +448,7 @@ class MemberBillsPage extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.forest.withOpacity(.1),
+                                  color: AppColors.forest.withValues(alpha: .1),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
@@ -568,7 +571,8 @@ class _MemberBillDetailPageState extends ConsumerState<MemberBillDetailPage> {
             loading: () => const SizedBox(height: 380, child: LoadingView()),
             error: (error, _) => ErrorView(message: '$error'),
             data: (items) {
-              final bill = items.where((item) => item.id == widget.billId).firstOrNull;
+              final bill =
+                  items.where((item) => item.id == widget.billId).firstOrNull;
               if (bill == null) {
                 return const ErrorView(
                   message: 'Tagihan tidak ditemukan atau tidak dapat diakses.',
@@ -627,21 +631,22 @@ class _MemberBillDetailPageState extends ConsumerState<MemberBillDetailPage> {
                   accounts.when(
                     loading: () => const LoadingView(),
                     error: (error, _) => ErrorView(message: '$error'),
-                    data: (items) => Column(
-                      children: [
-                        for (final account in items) ...[
-                          RadioListTile<String>(
-                            value: account.id,
-                            groupValue: _accountId,
-                            onChanged: bill.status == BillStatus.paid
-                                ? null
-                                : (value) => setState(() => _accountId = value),
-                            title: PaymentAccountCard(account: account),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          const SizedBox(height: 8),
+                    data: (items) => RadioGroup<String>(
+                      groupValue: _accountId,
+                      onChanged: (value) => setState(() => _accountId = value),
+                      child: Column(
+                        children: [
+                          for (final account in items) ...[
+                            RadioListTile<String>(
+                              value: account.id,
+                              enabled: bill.status != BillStatus.paid,
+                              title: PaymentAccountCard(account: account),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                   if (bill.status != BillStatus.paid) ...[

@@ -26,9 +26,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final path = state.uri.path;
-      final isPublic = path == '/login' ||
-          path == '/register' ||
-          path == '/forgot-password';
+      final isPublic =
+          path == '/login' || path == '/register' || path == '/forgot-password';
 
       if (auth.isLoading) return null;
       if (!auth.isAuthenticated) return isPublic ? null : '/login';
@@ -77,8 +76,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       ShellRoute(
-        builder: (_, __, child) =>
-            AppShell(role: UserRole.admin, child: child),
+        builder: (_, __, child) => AppShell(role: UserRole.admin, child: child),
         routes: [
           GoRoute(
             path: '/admin/dashboard',

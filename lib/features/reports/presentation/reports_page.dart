@@ -227,8 +227,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       return bill.dueMonth == _month &&
           bill.dueYear == _year &&
           (_memberId == null || bill.memberId == _memberId) &&
-          (_accountId == null ||
-              bill.selectedPaymentAccountId == _accountId);
+          (_accountId == null || bill.selectedPaymentAccountId == _accountId);
     }).toList();
   }
 
@@ -295,10 +294,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Map<String, List<Bill>> _groupByAccount(List<Bill> items) {
     final result = <String, List<Bill>>{};
     for (final bill in items.where((item) => item.status == BillStatus.paid)) {
-      result.putIfAbsent(
-        bill.selectedPaymentAccountId ?? 'Tidak diketahui',
-        () => [],
-      ).add(bill);
+      result
+          .putIfAbsent(
+            bill.selectedPaymentAccountId ?? 'Tidak diketahui',
+            () => [],
+          )
+          .add(bill);
     }
     return result;
   }

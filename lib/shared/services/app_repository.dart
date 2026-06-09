@@ -7,9 +7,9 @@ import '../../core/constants/app_constants.dart';
 import '../models/app_models.dart';
 
 class AppRepository {
-  AppRepository() : _client = AppConfig.isSupabaseConfigured
-      ? Supabase.instance.client
-      : null;
+  AppRepository()
+      : _client =
+            AppConfig.isSupabaseConfigured ? Supabase.instance.client : null;
 
   final SupabaseClient? _client;
   final _demo = DemoDataStore.instance;
@@ -94,9 +94,12 @@ class AppRepository {
         .eq('community_id', communityId);
     if (activeOnly) query = query.eq('is_active', true);
     final rows = await query.order('is_default', ascending: false);
-    return (rows as List).cast<Map<String, dynamic>>().map(
+    return (rows as List)
+        .cast<Map<String, dynamic>>()
+        .map(
           PaymentAccount.fromJson,
-        ).toList();
+        )
+        .toList();
   }
 
   Future<void> savePaymentAccount({
@@ -255,8 +258,9 @@ class AppRepository {
       }
       return;
     }
-    final row = await _client!.from('dues').insert(payload).select('id').single();
-    await _client!.rpc(
+    final row =
+        await _client!.from('dues').insert(payload).select('id').single();
+    await _client.rpc(
       'generate_bills_for_due',
       params: {'target_due_id': row['id']},
     );
@@ -285,7 +289,10 @@ class AppRepository {
     if (memberId != null) query = query.eq('member_id', memberId);
     if (status != null) query = query.eq('status', status.value);
     final rows = await query.order('created_at', ascending: false);
-    return (rows as List).cast<Map<String, dynamic>>().map(Bill.fromJson).toList();
+    return (rows as List)
+        .cast<Map<String, dynamic>>()
+        .map(Bill.fromJson)
+        .toList();
   }
 
   Future<String?> getMemberIdForUser(String userId) async {
@@ -337,7 +344,7 @@ class AppRepository {
             upsert: false,
           ),
         );
-    await _client!.from('bills').update({
+    await _client.from('bills').update({
       'selected_payment_account_id': paymentAccountId,
       'payment_date': _isoDate(paymentDate),
       'payment_method': 'bank_transfer',
@@ -410,7 +417,9 @@ class AppRepository {
     if (!isDemoMode && receiptBytes != null && receiptExtension != null) {
       receiptPath =
           '$communityId/$userId/${DateTime.now().millisecondsSinceEpoch}.$receiptExtension';
-      await _client!.storage.from(AppConstants.expenseReceiptBucket).uploadBinary(
+      await _client!.storage
+          .from(AppConstants.expenseReceiptBucket)
+          .uploadBinary(
             receiptPath,
             receiptBytes,
             fileOptions: FileOptions(
@@ -491,17 +500,19 @@ class AppRepository {
             (row) =>
                 row['community_id'] == communityId && row['status'] == 'paid',
           )
-          .fold<double>(0, (sum, row) => sum + (row['amount'] as num).toDouble());
+          .fold<double>(
+              0, (sum, row) => sum + (row['amount'] as num).toDouble());
       final unpaid = _demo.bills
           .where(
             (row) =>
-                row['community_id'] == communityId &&
-                row['status'] != 'paid',
+                row['community_id'] == communityId && row['status'] != 'paid',
           )
-          .fold<double>(0, (sum, row) => sum + (row['amount'] as num).toDouble());
+          .fold<double>(
+              0, (sum, row) => sum + (row['amount'] as num).toDouble());
       final expenses = _demo.expenses
           .where((row) => row['community_id'] == communityId)
-          .fold<double>(0, (sum, row) => sum + (row['amount'] as num).toDouble());
+          .fold<double>(
+              0, (sum, row) => sum + (row['amount'] as num).toDouble());
       return CashSummary(
         totalPaid: paid,
         totalUnpaid: unpaid,
@@ -588,7 +599,8 @@ class DemoDataStore {
       'account_number': '9876543210',
       'account_holder_name': 'Kas Warga RT 05',
       'branch_name': null,
-      'payment_instruction': 'Cantumkan nama dan nomor rumah pada berita transfer.',
+      'payment_instruction':
+          'Cantumkan nama dan nomor rumah pada berita transfer.',
       'is_default': false,
       'is_active': true,
     },
@@ -603,7 +615,7 @@ class DemoDataStore {
         'full_name': 'Warga Demo $index',
         'phone_number': '+62811111111${index + 1}',
         'house_block': 'A',
-        'house_number': '${index.toString().padLeft(2, '0')}',
+        'house_number': index.toString().padLeft(2, '0'),
         'family_count': index + 1,
         'status': 'active',
       },
@@ -660,7 +672,8 @@ class DemoDataStore {
       'title': 'Perbaikan lampu jalan',
       'description': 'Penggantian dua lampu area gerbang.',
       'amount': 75000,
-      'expense_date': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+      'expense_date':
+          DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
       'receipt_image_url': null,
     },
   ];

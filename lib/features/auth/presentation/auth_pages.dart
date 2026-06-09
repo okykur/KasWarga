@@ -112,7 +112,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           const SizedBox(height: 8),
                           const Text(
                             'Masuk untuk mengelola iuran dan kabar lingkungan.',
-                            style: TextStyle(color: AppColors.muted, height: 1.5),
+                            style:
+                                TextStyle(color: AppColors.muted, height: 1.5),
                           ),
                           const SizedBox(height: 28),
                           AppTextField(
@@ -154,7 +155,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppColors.danger.withOpacity(.08),
+                                color: AppColors.danger.withValues(alpha: .08),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -289,7 +290,7 @@ class _DemoCredentialHint extends StatelessWidget {
         margin: const EdgeInsets.only(top: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.amber.withOpacity(.12),
+          color: AppColors.amber.withValues(alpha: .12),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Text(
@@ -449,8 +450,7 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
 
   @override
-  ConsumerState<ForgotPasswordPage> createState() =>
-      _ForgotPasswordPageState();
+  ConsumerState<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
 class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {

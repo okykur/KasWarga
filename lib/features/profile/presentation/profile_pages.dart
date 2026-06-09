@@ -68,7 +68,7 @@ class ProfilePage extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.amber.withOpacity(.14),
+                    color: AppColors.amber.withValues(alpha: .14),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Text(

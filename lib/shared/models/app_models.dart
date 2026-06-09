@@ -217,8 +217,7 @@ class Bill {
       memberId: json['member_id'] as String,
       amount: _double(json['amount']),
       status: BillStatus.fromValue(json['status'] as String?),
-      selectedPaymentAccountId:
-          json['selected_payment_account_id'] as String?,
+      selectedPaymentAccountId: json['selected_payment_account_id'] as String?,
       paymentDate: _date(json['payment_date']),
       paymentMethod: json['payment_method'] as String?,
       paymentProofUrl: json['payment_proof_url'] as String?,

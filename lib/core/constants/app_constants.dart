@@ -25,6 +25,7 @@ enum UserRole {
     );
   }
 }
+
 enum BillStatus {
   unpaid('unpaid', 'Belum Bayar'),
   waitingVerification('waiting_verification', 'Menunggu Verifikasi'),

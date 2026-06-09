@@ -28,10 +28,12 @@ class SuperAdminDashboardPage extends ConsumerWidget {
           loading: () => const SizedBox(height: 420, child: LoadingView()),
           error: (error, _) => ErrorView(message: '$error'),
           data: (profileItems) {
-            final admins =
-                profileItems.where((item) => item.role == UserRole.admin).length;
-            final members =
-                profileItems.where((item) => item.role == UserRole.member).length;
+            final admins = profileItems
+                .where((item) => item.role == UserRole.admin)
+                .length;
+            final members = profileItems
+                .where((item) => item.role == UserRole.member)
+                .length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -113,7 +115,7 @@ class AdminDashboardPage extends ConsumerWidget {
                   title: 'Anggota Aktif',
                   value:
                       '${members.valueOrNull?.where((item) => item.status == 'active').length ?? 0}',
-                  icon: Icons.person_available_rounded,
+                  icon: Icons.how_to_reg_rounded,
                   accent: AppColors.success,
                 ),
                 DashboardCard(
@@ -157,8 +159,7 @@ class AdminDashboardPage extends ConsumerWidget {
             _WaitingPayments(
               bills: bills.valueOrNull
                       ?.where(
-                        (bill) =>
-                            bill.status == BillStatus.waitingVerification,
+                        (bill) => bill.status == BillStatus.waitingVerification,
                       )
                       .toList() ??
                   const [],
@@ -234,7 +235,8 @@ class MemberDashboardPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               bills.when(
-                loading: () => const SizedBox(height: 180, child: LoadingView()),
+                loading: () =>
+                    const SizedBox(height: 180, child: LoadingView()),
                 error: (error, _) => ErrorView(message: '$error'),
                 data: (items) {
                   final unpaid = items.where(
@@ -410,8 +412,7 @@ class _AccountPaymentSummary extends StatelessWidget {
                 bill.status == BillStatus.paid &&
                 bill.selectedPaymentAccountId == account.id,
           );
-          final total =
-              paid.fold<double>(0, (sum, bill) => sum + bill.amount);
+          final total = paid.fold<double>(0, (sum, bill) => sum + bill.amount);
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -462,7 +463,14 @@ class _GrowthPanel extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    for (final height in [60.0, 90.0, 76.0, 120.0, 145.0, 170.0])
+                    for (final height in [
+                      60.0,
+                      90.0,
+                      76.0,
+                      120.0,
+                      145.0,
+                      170.0
+                    ])
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -471,7 +479,7 @@ class _GrowthPanel extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: height == 170
                                   ? AppColors.amber
-                                  : AppColors.forest.withOpacity(.16),
+                                  : AppColors.forest.withValues(alpha: .16),
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(8),
                               ),

@@ -191,9 +191,7 @@ class _AnnouncementFormState extends ConsumerState<_AnnouncementForm> {
   @override
   Widget build(BuildContext context) => AlertDialog(
         title: Text(
-          widget.announcement == null
-              ? 'Buat Pengumuman'
-              : 'Edit Pengumuman',
+          widget.announcement == null ? 'Buat Pengumuman' : 'Edit Pengumuman',
         ),
         content: SizedBox(
           width: 540,
@@ -246,7 +244,8 @@ class _AnnouncementFormState extends ConsumerState<_AnnouncementForm> {
                           isPinned: _pinned,
                           userId: widget.profile.id,
                         );
-                    if (mounted) Navigator.pop(context, true);
+                    if (!mounted) return;
+                    Navigator.pop(this.context, true);
                   },
             child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
           ),

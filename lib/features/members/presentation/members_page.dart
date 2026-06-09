@@ -152,13 +152,12 @@ class _MembersPageState extends ConsumerState<MembersPage> {
                           ),
                           IconButton(
                             tooltip: 'Edit',
-                            onPressed: () =>
-                                _showForm(
-                                  context,
-                                  profile,
-                                  profiles: profiles.valueOrNull ?? const [],
-                                  member: member,
-                                ),
+                            onPressed: () => _showForm(
+                              context,
+                              profile,
+                              profiles: profiles.valueOrNull ?? const [],
+                              member: member,
+                            ),
                             icon: const Icon(Icons.edit_outlined),
                           ),
                         ],
@@ -368,10 +367,11 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
                             familyCount: int.parse(_family.text),
                             status: _status,
                           );
-                      if (mounted) Navigator.pop(context, true);
+                      if (!mounted) return;
+                      Navigator.pop(this.context, true);
                     } catch (error) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(content: Text('Gagal menyimpan: $error')),
                         );
                         setState(() => _saving = false);
