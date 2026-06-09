@@ -131,6 +131,12 @@ class AuthController extends StateNotifier<AuthState> {
       final normalized =
           PhoneNumberFormatter.normalizeIndonesianPhoneNumber(phoneNumber);
       if (_client == null) {
+        DemoDataStore.instance.registerMember(
+          fullName: fullName,
+          email: email,
+          phoneNumber: normalized,
+          password: password,
+        );
         state = const AuthState();
         return true;
       }
@@ -153,6 +159,9 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(errorMessage: message);
       return false;
     } on FormatException catch (error) {
+      state = AuthState(errorMessage: error.message);
+      return false;
+    } on DemoRegistrationException catch (error) {
       state = AuthState(errorMessage: error.message);
       return false;
     }
@@ -196,11 +205,6 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   UserProfile _demoLogin(String identifier, String password) {
-    if (password != 'password123') {
-      throw const AuthDisplayException(
-        'Password yang Anda masukkan salah.',
-      );
-    }
     final type = PhoneNumberFormatter.detectLoginIdentifierType(identifier);
     String lookup = identifier.trim().toLowerCase();
     if (type == LoginIdentifierType.phone) {
@@ -208,11 +212,19 @@ class AuthController extends StateNotifier<AuthState> {
     }
     final profiles = DemoDataStore.instance.profiles.map(UserProfile.fromJson);
     try {
-      return profiles.firstWhere(
+      final profile = profiles.firstWhere(
         (profile) =>
             profile.email.toLowerCase() == lookup ||
             profile.phoneNumber == lookup,
       );
+      if (!DemoDataStore.instance.passwordMatches(profile.id, password)) {
+        throw const AuthDisplayException(
+          'Password yang Anda masukkan salah.',
+        );
+      }
+      return profile;
+    } on AuthDisplayException {
+      rethrow;
     } catch (_) {
       if (type == LoginIdentifierType.phone) {
         throw const AuthDisplayException('Nomor handphone belum terdaftar.');

@@ -539,6 +539,14 @@ class DemoDataStore {
   DemoDataStore._();
   static final instance = DemoDataStore._();
 
+  final demoPasswords = <String, String>{
+    '22222222-2222-2222-2222-222222222222': 'password123',
+    '33333333-3333-3333-3333-333333333333': 'password123',
+    '44444444-4444-4444-4444-444444444441': 'password123',
+    '44444444-4444-4444-4444-444444444442': 'password123',
+    '44444444-4444-4444-4444-444444444443': 'password123',
+  };
+
   final communities = <Map<String, dynamic>>[
     {
       'id': AppConstants.demoCommunityId,
@@ -690,6 +698,81 @@ class DemoDataStore {
     },
   ];
 
+  UserProfile registerMember({
+    required String fullName,
+    required String email,
+    required String phoneNumber,
+    required String password,
+  }) {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (profiles.any(
+      (profile) =>
+          (profile['email'] as String).toLowerCase() == normalizedEmail,
+    )) {
+      throw const DemoRegistrationException(
+        'Email sudah terdaftar. Silakan gunakan email lain.',
+      );
+    }
+    if (profiles.any((profile) => profile['phone_number'] == phoneNumber)) {
+      throw const DemoRegistrationException(
+        'Nomor handphone sudah terdaftar.',
+      );
+    }
+
+    final userId = _newDemoId();
+    final memberNumber = members.length + 1;
+    final profile = <String, dynamic>{
+      'id': userId,
+      'full_name': fullName.trim(),
+      'email': normalizedEmail,
+      'phone_number': phoneNumber,
+      'role': 'member',
+      'community_id': AppConstants.demoCommunityId,
+    };
+    profiles.add(profile);
+    demoPasswords[userId] = password;
+
+    members.add({
+      'id': userId,
+      'community_id': AppConstants.demoCommunityId,
+      'user_id': userId,
+      'full_name': fullName.trim(),
+      'phone_number': phoneNumber,
+      'house_block': '-',
+      'house_number': 'REG-$memberNumber',
+      'family_count': 1,
+      'status': 'active',
+    });
+
+    for (final due in dues) {
+      bills.add({
+        'id': _newDemoId(),
+        'dues_id': due['id'],
+        'community_id': AppConstants.demoCommunityId,
+        'member_id': userId,
+        'amount': due['amount'],
+        'status': 'unpaid',
+        'dues': {
+          'title': due['title'],
+          'month': due['month'],
+          'year': due['year'],
+        },
+        'community_members': {'full_name': fullName.trim()},
+      });
+    }
+
+    return UserProfile.fromJson(profile);
+  }
+
+  bool passwordMatches(String userId, String password) {
+    return demoPasswords[userId] == password;
+  }
+
+  String _newDemoId() {
+    final value = DateTime.now().microsecondsSinceEpoch.toString();
+    return value.padLeft(36, '0');
+  }
+
   String upsert(
     List<Map<String, dynamic>> target,
     String? id,
@@ -714,4 +797,9 @@ class DemoDataStore {
     final index = target.indexWhere((row) => row['id'] == id);
     if (index >= 0) target[index] = {...target[index], ...payload};
   }
+}
+
+class DemoRegistrationException implements Exception {
+  const DemoRegistrationException(this.message);
+  final String message;
 }
