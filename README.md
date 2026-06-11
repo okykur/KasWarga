@@ -1,6 +1,6 @@
 # KasWarga
 
-KasWarga adalah aplikasi Flutter Web/PWA untuk iuran warga, kas komunitas,
+KasWarga adalah aplikasi SaaS multi-tenant berbasis Flutter Web/PWA untuk iuran warga, kas komunitas,
 pengumuman, dan laporan operasional RT/RW, komplek, apartemen kecil, masjid,
 sekolah, serta organisasi lokal Indonesia.
 
@@ -18,7 +18,13 @@ serta menyediakan mode demo lokal ketika konfigurasi Supabase belum diberikan.
 ## Fitur MVP
 
 - Register, login email/password, login nomor HP/password, lupa password, logout
-- Routing untuk `super_admin`, `admin`, dan `member`
+- Onboarding SaaS untuk membuat atau bergabung ke komunitas
+- Role membership `owner`, `admin`, `treasurer`, dan `member` per komunitas
+- Community switcher untuk user yang tergabung di lebih dari satu komunitas
+- Join melalui kode komunitas dengan approval opsional
+- Invitation token dengan link yang dapat disalin manual
+- Struktur subscription plan Free/Pro dan limit checker
+- Routing platform super admin dan role komunitas
 - Dashboard platform, admin komunitas, dan warga
 - Manajemen komunitas, user, anggota, rekening tujuan, dan iuran bulanan
 - Generate tagihan untuk anggota aktif
@@ -119,6 +125,12 @@ Migration membuat:
 - RPC `generate_bills_for_due(target_due_id uuid)`
 - RPC `verify_bill_payment(...)`
 - RPC `get_community_cash_summary()`
+- Tabel `community_memberships` dan `community_member_details`
+- Tabel `community_invitations` dan `community_join_requests`
+- Tabel `subscription_plans` dan `community_subscriptions`
+- RPC create community, join kode, accept invitation, dan review join request
+- Helper RLS `is_platform_super_admin`, `is_community_member`,
+  `has_community_role`, dan `get_user_active_communities`
 - RLS untuk seluruh tabel
 - Bucket privat `payment_proofs` dan `expense_receipts`
 - Policy Storage berdasarkan folder `community_id/user_id/file`
@@ -155,7 +167,7 @@ Semua password: `password123`.
 | Role | Email | Nomor HP |
 |---|---|---|
 | Super Admin | `superadmin@kaswarga.local` | `+628111111110` |
-| Admin | `admin@kaswarga.local` | `+628111111111` |
+| Owner Melati | `admin@kaswarga.local` | `+628111111111` |
 | Member 1 | `member1@kaswarga.local` | `+628111111112` |
 | Member 2 | `member2@kaswarga.local` | `+628111111113` |
 | Member 3 | `member3@kaswarga.local` | `+628111111114` |
@@ -166,6 +178,88 @@ Login nomor HP menormalisasi `08...`, `62...`, atau `+62...` menjadi `+62`,
 memanggil RPC `get_email_by_phone`, lalu memakai email hasil lookup untuk
 `signInWithPassword`. RPC hanya mengembalikan email nullable dan tidak
 mengembalikan id, role, komunitas, atau profil lain.
+
+## Konsep SaaS Multi-Tenant
+
+`profiles` hanya menyimpan identitas global user. Akses komunitas disimpan pada
+`community_memberships`, sehingga satu user dapat memiliki role berbeda pada
+komunitas berbeda. Data rumah disimpan pada `community_member_details`.
+
+Semua data operasional memiliki `community_id`. Flutter selalu mengirim
+`selectedCommunityId`, sedangkan PostgreSQL RLS memverifikasi membership aktif
+untuk setiap query. Filter frontend bukan batas keamanan; RLS tetap menjadi
+pengaman utama jika request dimanipulasi.
+
+Setelah login:
+
+1. User tanpa komunitas diarahkan ke `/onboarding`.
+2. User dengan satu komunitas otomatis memilih komunitas tersebut.
+3. User dengan beberapa komunitas diarahkan ke `/select-community`.
+4. Community switcher pada sidebar/header mengganti tenant tanpa logout.
+
+## Membuat Komunitas
+
+Pilih **Buat Komunitas Baru**, isi profil dan kode komunitas. Kode hanya boleh
+berisi huruf besar, angka, dan tanda minus sepanjang 5-30 karakter. RPC
+`create_community_with_owner` membuat community, membership owner, detail
+anggota, dan trial plan Free dalam satu transaksi.
+
+Creator otomatis menjadi `owner` aktif dan dapat mengatur rekening, mengundang
+anggota, membuat iuran, serta mengelola komunitas.
+
+## Join dengan Kode
+
+Halaman `/join-community` memvalidasi kode melalui RPC terbatas yang hanya
+menampilkan preview komunitas. Jika approval aktif, membership dan join request
+dibuat dengan status `pending`. Owner/admin meninjaunya melalui
+`/admin/join-requests`.
+
+Jika approval dimatikan, membership langsung aktif dan user diarahkan ke
+dashboard komunitas. User tidak dapat bergabung dua kali ke tenant yang sama.
+
+Kode demo:
+
+- `MELATI-RT05`: memerlukan persetujuan admin.
+- `GARDENIA-2026`: langsung aktif.
+
+## Invitation
+
+Owner/admin membuat invitation melalui `/admin/invitations`. Hanya owner yang
+dapat mengundang role admin. Token dibuat acak, unik, dan berlaku tujuh hari.
+Selama email provider belum dikonfigurasi, admin dapat menyalin link:
+
+```text
+https://app-domain.com/#/accept-invitation?token=INVITATION_TOKEN
+```
+
+Penerima membuka `/accept-invitation`. Untuk MVP, email akun login harus sama
+dengan `invited_email`. Setelah diterima, membership dan detail anggota dibuat
+serta invitation ditandai `accepted`.
+
+Template email Bahasa Indonesia tersedia di
+`lib/core/utils/invitation_email_template.dart`. Pengiriman aktual dapat
+ditambahkan melalui Supabase Edge Function dan Resend/SendGrid.
+
+## Role Komunitas
+
+- `owner`: kontrol penuh tenant, pengaturan komunitas, dan pengangkatan admin.
+- `admin`: mengelola warga dan operasional, tetapi tidak dapat mengubah owner.
+- `treasurer`: mengelola iuran, verifikasi, rekening, pengeluaran, dan laporan.
+- `member`: melihat data komunitas dan tagihan miliknya sendiri.
+
+Trigger database mencegah owner terakhir diturunkan atau dinonaktifkan.
+
+## Subscription
+
+Migration dan seed menyediakan:
+
+- **Free**: maksimal 30 anggota, 2 pengurus, iuran, bukti pembayaran,
+  pengumuman, dan CSV.
+- **Pro**: struktur awal maksimal 500 anggota dan 10 pengurus.
+
+Helper `can_add_member`, `can_add_admin`, dan `can_create_community` menegakkan
+limit sebelum data ditambahkan. Payment gateway dan billing SaaS belum
+diimplementasikan.
 
 ## Flow Pembayaran
 
@@ -217,9 +311,13 @@ Pastikan hosting:
 ## Catatan Keamanan
 
 - RLS aktif pada seluruh tabel.
-- Admin hanya dapat mengelola `community_id` miliknya.
+- Owner/admin/treasurer hanya dapat mengelola tenant dengan membership aktif.
 - Member hanya dapat membaca profil sendiri, tagihan sendiri, rekening aktif,
   pengumuman, dan RPC ringkasan kas komunitas.
+- Role komunitas tidak disimpan pada `profiles`.
+- Invitation dan join request hanya dapat dikelola owner/admin komunitas.
+- Helper RLS memakai `SECURITY DEFINER`, `search_path` eksplisit, privilege
+  minimal, dan `row_security = off` hanya untuk pemeriksaan membership internal.
 - Trigger database mencegah member mengubah nominal, pemilik, atau hasil
   verifikasi tagihan melalui request langsung.
 - Bucket Storage bersifat privat dan dibatasi folder komunitas/user.
@@ -232,12 +330,13 @@ Pastikan hosting:
 
 ## Roadmap
 
-- Undangan/join code komunitas dan approval anggota baru
+- Pengiriman email invitation melalui Edge Function
+- Audit log perubahan role dan perpindahan owner
+- Billing SaaS dan payment gateway subscription
 - OTP SMS atau WhatsApp dengan provider terverifikasi
 - Preview dan pengelolaan signed URL untuk nota pengeluaran
 - Notifikasi jatuh tempo dan pengumuman
 - Export PDF dan template laporan resmi
 - Rekonsiliasi mutasi bank dan payment gateway
 - Audit log, soft delete, dan histori perubahan role
-- Multi-community untuk satu pengguna
 - Monitoring, Sentry, analytics, dan integration test browser

@@ -20,12 +20,7 @@ void main() {
     );
 
     expect(registered, isTrue);
-    expect(
-      DemoDataStore.instance.members.any(
-        (member) => member['phone_number'] == phone,
-      ),
-      isTrue,
-    );
+    expect(controller.state.profile, isNull);
 
     final emailLogin = await controller.login(
       identifier: email,
@@ -33,6 +28,7 @@ void main() {
     );
     expect(emailLogin, isTrue);
     expect(controller.state.profile?.email, email);
+    expect(controller.state.memberships, isEmpty);
 
     await controller.logout();
     final phoneLogin = await controller.login(

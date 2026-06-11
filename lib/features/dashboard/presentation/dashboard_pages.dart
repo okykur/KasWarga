@@ -28,12 +28,6 @@ class SuperAdminDashboardPage extends ConsumerWidget {
           loading: () => const SizedBox(height: 420, child: LoadingView()),
           error: (error, _) => ErrorView(message: '$error'),
           data: (profileItems) {
-            final admins = profileItems
-                .where((item) => item.role == UserRole.admin)
-                .length;
-            final members = profileItems
-                .where((item) => item.role == UserRole.member)
-                .length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,8 +52,8 @@ class SuperAdminDashboardPage extends ConsumerWidget {
                       accent: AppColors.amber,
                     ),
                     DashboardCard(
-                      title: 'Admin / Warga',
-                      value: '$admins / $members',
+                      title: 'Akun Terdaftar',
+                      value: '${profileItems.length}',
                       icon: Icons.manage_accounts_rounded,
                     ),
                   ],
@@ -80,8 +74,9 @@ class AdminDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final auth = ref.watch(authControllerProvider);
+    final profile = auth.profile!;
+    final communityId = auth.selectedCommunityId!;
     final members = ref.watch(membersProvider(communityId));
     final bills = ref.watch(
       billsProvider(
@@ -186,10 +181,14 @@ class MemberDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final auth = ref.watch(authControllerProvider);
+    final profile = auth.profile!;
+    final communityId = auth.selectedCommunityId!;
     return FutureBuilder<String?>(
-      future: ref.read(appRepositoryProvider).getMemberIdForUser(profile.id),
+      future: ref.read(appRepositoryProvider).getMemberIdForUser(
+            profile.id,
+            communityId: communityId,
+          ),
       builder: (context, memberSnapshot) {
         if (memberSnapshot.connectionState == ConnectionState.waiting) {
           return const PageScaffold(
@@ -215,7 +214,20 @@ class MemberDashboardPage extends ConsumerWidget {
             ),
           );
         }
-        final memberId = memberSnapshot.data ?? AppConstants.demoMemberId;
+        final memberId = memberSnapshot.data;
+        if (memberId == null) {
+          return const PageScaffold(
+            title: 'Beranda',
+            subtitle: 'Data anggota belum tersedia.',
+            child: SizedBox(
+              height: 280,
+              child: EmptyState(
+                title: 'Detail warga belum lengkap',
+                message: 'Hubungi admin untuk melengkapi data keanggotaan.',
+              ),
+            ),
+          );
+        }
         final bills = ref.watch(
           billsProvider(
             (communityId: communityId, memberId: memberId, status: null),

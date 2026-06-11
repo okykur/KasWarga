@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/phone_number_formatter.dart';
 import '../../../core/widgets/app_shell.dart';
@@ -16,6 +15,7 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).profile!;
+    final membership = ref.watch(authControllerProvider).selectedMembership;
     return PageScaffold(
       title: 'Profil Saya',
       subtitle: 'Informasi akun yang digunakan untuk masuk ke KasWarga.',
@@ -40,7 +40,7 @@ class ProfilePage extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                profile.role.label,
+                membership?.role.label ?? 'Akun Platform',
                 style: const TextStyle(color: AppColors.muted),
               ),
               const Divider(height: 36),
@@ -59,10 +59,9 @@ class ProfilePage extends ConsumerWidget {
               _ProfileRow(
                 icon: Icons.badge_outlined,
                 label: 'Role',
-                value: profile.role.label,
+                value: membership?.role.label ?? 'Belum memilih komunitas',
               ),
-              if (AppConfig.isSupabaseConfigured &&
-                  profile.communityId == null) ...[
+              if (membership == null) ...[
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
@@ -72,7 +71,7 @@ class ProfilePage extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Text(
-                    'Akun Anda belum ditautkan ke komunitas. Hubungi admin komunitas agar tagihan dan pengumuman dapat diakses.',
+                    'Anda belum memilih komunitas aktif. Gunakan pemilih komunitas untuk melanjutkan.',
                     style: TextStyle(height: 1.45),
                   ),
                 ),
@@ -97,8 +96,7 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     final communities = ref.watch(communitiesProvider);
     return PageScaffold(
       title: 'Pengaturan',

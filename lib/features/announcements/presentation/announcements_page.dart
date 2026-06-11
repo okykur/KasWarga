@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_formatters.dart';
 import '../../../core/utils/validators.dart';
@@ -17,8 +16,9 @@ class AnnouncementsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final auth = ref.watch(authControllerProvider);
+    final profile = auth.profile!;
+    final communityId = auth.selectedCommunityId!;
     final announcements = ref.watch(announcementsProvider(communityId));
     return PageScaffold(
       title: 'Pengumuman',
@@ -34,6 +34,7 @@ class AnnouncementsPage extends ConsumerWidget {
                 context,
                 ref,
                 profile: profile,
+                communityId: communityId,
               ),
             ),
       child: announcements.when(
@@ -84,6 +85,7 @@ class AnnouncementsPage extends ConsumerWidget {
                                   context,
                                   ref,
                                   profile: profile,
+                                  communityId: communityId,
                                   announcement: item,
                                 ),
                                 icon: const Icon(Icons.edit_outlined),
@@ -144,12 +146,14 @@ class AnnouncementsPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required UserProfile profile,
+    required String communityId,
     Announcement? announcement,
   }) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _AnnouncementForm(
         profile: profile,
+        communityId: communityId,
         announcement: announcement,
       ),
     );
@@ -158,8 +162,13 @@ class AnnouncementsPage extends ConsumerWidget {
 }
 
 class _AnnouncementForm extends ConsumerStatefulWidget {
-  const _AnnouncementForm({required this.profile, this.announcement});
+  const _AnnouncementForm({
+    required this.profile,
+    required this.communityId,
+    this.announcement,
+  });
   final UserProfile profile;
+  final String communityId;
   final Announcement? announcement;
 
   @override
@@ -237,8 +246,7 @@ class _AnnouncementFormState extends ConsumerState<_AnnouncementForm> {
                     setState(() => _saving = true);
                     await ref.read(appRepositoryProvider).saveAnnouncement(
                           id: widget.announcement?.id,
-                          communityId: widget.profile.communityId ??
-                              AppConstants.demoCommunityId,
+                          communityId: widget.communityId,
                           title: _title.text,
                           content: _content.text,
                           isPinned: _pinned,

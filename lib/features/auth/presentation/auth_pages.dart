@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/routing/role_route_guard.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_widgets.dart';
@@ -78,7 +77,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!mounted) return;
     final state = ref.read(authControllerProvider);
     if (success && state.profile != null) {
-      context.go(roleHomePath(state.profile!.role));
+      final query = GoRouterState.of(context).uri.queryParameters;
+      final next = query['next'];
+      if (next != null && next.startsWith('/')) {
+        final token = query['token'];
+        context.go(token == null ? next : '$next?token=$token');
+        return;
+      }
+      if (state.isPlatformSuperAdmin && state.memberships.isEmpty) {
+        context.go('/super-admin/dashboard');
+      } else if (state.memberships.isEmpty) {
+        context.go('/onboarding');
+      } else if (state.selectedCommunityId == null) {
+        context.go('/select-community');
+      } else {
+        context.go(
+          state.canManageSelectedCommunity
+              ? '/admin/dashboard'
+              : '/member/dashboard',
+        );
+      }
     }
   }
 
@@ -368,7 +386,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Role awal pendaftaran mandiri adalah Warga.',
+                        'Setelah mendaftar, Anda dapat membuat komunitas atau bergabung dengan kode.',
                         style: TextStyle(color: AppColors.muted),
                       ),
                       const SizedBox(height: 24),

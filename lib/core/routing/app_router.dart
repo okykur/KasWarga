@@ -7,6 +7,7 @@ import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/auth_pages.dart';
 import '../../features/bills/presentation/bills_pages.dart';
 import '../../features/communities/presentation/super_admin_pages.dart';
+import '../../features/communities/presentation/saas_pages.dart';
 import '../../features/dashboard/presentation/dashboard_pages.dart';
 import '../../features/dues/presentation/dues_page.dart';
 import '../../features/expenses/presentation/expenses_page.dart';
@@ -14,7 +15,6 @@ import '../../features/members/presentation/members_page.dart';
 import '../../features/payment_accounts/presentation/payment_accounts_page.dart';
 import '../../features/profile/presentation/profile_pages.dart';
 import '../../features/reports/presentation/reports_page.dart';
-import '../config/app_config.dart';
 import '../constants/app_constants.dart';
 import '../widgets/app_shell.dart';
 import 'role_route_guard.dart';
@@ -26,23 +26,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final path = state.uri.path;
-      final isPublic =
+      final isAuthPage =
           path == '/login' || path == '/register' || path == '/forgot-password';
+      final isPublic = isAuthPage ||
+          path == '/accept-invitation' ||
+          path == '/join-community';
 
       if (auth.isLoading) return null;
       if (!auth.isAuthenticated) return isPublic ? null : '/login';
 
-      final profile = auth.profile!;
-      final home = roleHomePath(profile.role);
-      if (isPublic) return home;
-      if (AppConfig.isSupabaseConfigured &&
-          profile.role == UserRole.member &&
-          profile.communityId == null &&
-          path != '/member/profile') {
-        return '/member/profile';
+      if (auth.isPlatformSuperAdmin && path.startsWith('/super-admin')) {
+        return null;
       }
-
-      if (!isRouteAllowedForRole(profile.role, path)) return home;
+      if (auth.memberships.isEmpty) {
+        const onboardingPaths = {
+          '/onboarding',
+          '/create-community',
+          '/join-community',
+          '/accept-invitation',
+        };
+        return onboardingPaths.contains(path) ? null : '/onboarding';
+      }
+      if (auth.selectedCommunityId == null) {
+        const selectionPaths = {
+          '/select-community',
+          '/create-community',
+          '/join-community',
+          '/accept-invitation',
+        };
+        return selectionPaths.contains(path) ? null : '/select-community';
+      }
+      final role = auth.membershipRole!;
+      final home = membershipHomePath(role);
+      if (isAuthPage || path == '/onboarding' || path == '/select-community') {
+        return home;
+      }
+      if (path.startsWith('/super-admin')) {
+        return auth.isPlatformSuperAdmin ? null : home;
+      }
+      if (!isRouteAllowedForMembership(role, path)) return home;
       return null;
     },
     errorBuilder: (context, state) => Scaffold(
@@ -56,6 +78,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         builder: (_, __) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: '/select-community',
+        builder: (_, __) => const SelectCommunityPage(),
+      ),
+      GoRoute(
+        path: '/create-community',
+        builder: (_, __) => const CreateCommunityPage(),
+      ),
+      GoRoute(
+        path: '/join-community',
+        builder: (_, __) => const JoinCommunityPage(),
+      ),
+      GoRoute(
+        path: '/accept-invitation',
+        builder: (_, state) => AcceptInvitationPage(
+          initialToken: state.uri.queryParameters['token'],
+        ),
       ),
       ShellRoute(
         builder: (_, __, child) =>
@@ -72,6 +116,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/super-admin/users',
             builder: (_, __) => const UsersPage(),
+          ),
+          GoRoute(
+            path: '/super-admin/subscriptions',
+            builder: (_, __) => const SubscriptionsPage(),
           ),
         ],
       ),
@@ -115,8 +163,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const ReportsPage(),
           ),
           GoRoute(
+            path: '/admin/community-settings',
+            builder: (_, __) => const CommunitySettingsPage(),
+          ),
+          GoRoute(
             path: '/admin/settings',
-            builder: (_, __) => const SettingsPage(),
+            redirect: (_, __) => '/admin/community-settings',
+          ),
+          GoRoute(
+            path: '/admin/invitations',
+            builder: (_, __) => const InvitationsPage(),
+          ),
+          GoRoute(
+            path: '/admin/join-requests',
+            builder: (_, __) => const JoinRequestsPage(),
           ),
         ],
       ),

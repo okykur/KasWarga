@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/phone_number_formatter.dart';
 import '../../../core/utils/validators.dart';
@@ -24,21 +24,15 @@ class _MembersPageState extends ConsumerState<MembersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     final members = ref.watch(membersProvider(communityId));
-    final profiles = ref.watch(profilesProvider);
     return PageScaffold(
       title: 'Anggota Warga',
       subtitle: 'Kelola data rumah tangga dan tautkan dengan akun warga.',
       action: AppButton(
-        label: 'Tambah Anggota',
+        label: 'Undang Anggota',
         icon: Icons.person_add_alt_1_rounded,
-        onPressed: () => _showForm(
-          context,
-          profile,
-          profiles: profiles.valueOrNull ?? const [],
-        ),
+        onPressed: () => context.go('/admin/invitations'),
       ),
       child: Column(
         children: [
@@ -154,8 +148,7 @@ class _MembersPageState extends ConsumerState<MembersPage> {
                             tooltip: 'Edit',
                             onPressed: () => _showForm(
                               context,
-                              profile,
-                              profiles: profiles.valueOrNull ?? const [],
+                              communityId,
                               member: member,
                             ),
                             icon: const Icon(Icons.edit_outlined),
@@ -175,15 +168,13 @@ class _MembersPageState extends ConsumerState<MembersPage> {
 
   Future<void> _showForm(
     BuildContext context,
-    UserProfile profile, {
-    required List<UserProfile> profiles,
+    String communityId, {
     CommunityMember? member,
   }) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _MemberForm(
-        profile: profile,
-        profiles: profiles,
+        communityId: communityId,
         member: member,
       ),
     );
@@ -193,12 +184,10 @@ class _MembersPageState extends ConsumerState<MembersPage> {
 
 class _MemberForm extends ConsumerStatefulWidget {
   const _MemberForm({
-    required this.profile,
-    required this.profiles,
+    required this.communityId,
     this.member,
   });
-  final UserProfile profile;
-  final List<UserProfile> profiles;
+  final String communityId;
   final CommunityMember? member;
 
   @override
@@ -312,28 +301,6 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
                     onChanged: (value) =>
                         setState(() => _status = value ?? 'active'),
                   ),
-                  const SizedBox(height: 14),
-                  AppDropdown<String>(
-                    label: 'Hubungkan Akun Login (opsional)',
-                    value: _userId ?? '',
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: '',
-                        child: Text('Belum ditautkan'),
-                      ),
-                      for (final profile in widget.profiles.where(
-                        (item) =>
-                            item.role == UserRole.member &&
-                            item.communityId == widget.profile.communityId,
-                      ))
-                        DropdownMenuItem<String>(
-                          value: profile.id,
-                          child: Text(profile.fullName),
-                        ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _userId = value == '' ? null : value),
-                  ),
                 ],
               ),
             ),
@@ -357,8 +324,7 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
                       );
                       await ref.read(appRepositoryProvider).saveMember(
                             id: widget.member?.id,
-                            communityId: widget.profile.communityId ??
-                                AppConstants.demoCommunityId,
+                            communityId: widget.communityId,
                             userId: _userId,
                             fullName: _name.text,
                             phoneNumber: phone,

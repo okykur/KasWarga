@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_shell.dart';
@@ -15,8 +14,9 @@ class PaymentAccountsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final auth = ref.watch(authControllerProvider);
+    final profile = auth.profile!;
+    final communityId = auth.selectedCommunityId!;
     final accounts = ref.watch(
       paymentAccountsProvider(
         (communityId: communityId, activeOnly: false),
@@ -32,6 +32,7 @@ class PaymentAccountsPage extends ConsumerWidget {
           context,
           ref,
           profile: profile,
+          communityId: communityId,
         ),
       ),
       child: accounts.when(
@@ -69,6 +70,7 @@ class PaymentAccountsPage extends ConsumerWidget {
                           context,
                           ref,
                           profile: profile,
+                          communityId: communityId,
                           account: account,
                         ),
                         onDeactivate: account.isActive
@@ -103,12 +105,14 @@ class PaymentAccountsPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required UserProfile profile,
+    required String communityId,
     PaymentAccount? account,
   }) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _PaymentAccountForm(
         profile: profile,
+        communityId: communityId,
         account: account,
       ),
     );
@@ -256,10 +260,12 @@ class PaymentAccountCard extends StatelessWidget {
 class _PaymentAccountForm extends ConsumerStatefulWidget {
   const _PaymentAccountForm({
     required this.profile,
+    required this.communityId,
     this.account,
   });
 
   final UserProfile profile;
+  final String communityId;
   final PaymentAccount? account;
 
   @override
@@ -380,8 +386,7 @@ class _PaymentAccountFormState extends ConsumerState<_PaymentAccountForm> {
                     try {
                       await ref.read(appRepositoryProvider).savePaymentAccount(
                             id: widget.account?.id,
-                            communityId: widget.profile.communityId ??
-                                AppConstants.demoCommunityId,
+                            communityId: widget.communityId,
                             bankName: _bank.text,
                             accountNumber: _number.text,
                             accountHolderName: _holder.text,

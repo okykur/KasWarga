@@ -17,10 +17,21 @@ const superAdminNavItems = [
   AppNavItem('Dashboard', '/super-admin/dashboard', Icons.grid_view_rounded),
   AppNavItem('Komunitas', '/super-admin/communities', Icons.apartment_rounded),
   AppNavItem('Pengguna', '/super-admin/users', Icons.manage_accounts_rounded),
+  AppNavItem(
+    'Subscription',
+    '/super-admin/subscriptions',
+    Icons.workspace_premium_rounded,
+  ),
 ];
 
 const adminNavItems = [
   AppNavItem('Dashboard', '/admin/dashboard', Icons.grid_view_rounded),
+  AppNavItem('Undangan', '/admin/invitations', Icons.forward_to_inbox_rounded),
+  AppNavItem(
+    'Permintaan',
+    '/admin/join-requests',
+    Icons.how_to_reg_rounded,
+  ),
   AppNavItem('Anggota', '/admin/members', Icons.groups_2_rounded),
   AppNavItem('Iuran', '/admin/dues', Icons.receipt_long_rounded),
   AppNavItem('Tagihan', '/admin/bills', Icons.fact_check_rounded),
@@ -33,7 +44,11 @@ const adminNavItems = [
   AppNavItem('Pengeluaran', '/admin/expenses', Icons.payments_rounded),
   AppNavItem('Pengumuman', '/admin/announcements', Icons.campaign_rounded),
   AppNavItem('Laporan', '/admin/reports', Icons.bar_chart_rounded),
-  AppNavItem('Pengaturan', '/admin/settings', Icons.settings_rounded),
+  AppNavItem(
+    'Pengaturan',
+    '/admin/community-settings',
+    Icons.settings_rounded,
+  ),
 ];
 
 const memberNavItems = [
@@ -65,6 +80,10 @@ class AppShell extends ConsumerWidget {
     final selectedIndex = _selectedIndex(items, location);
     final isDesktop = MediaQuery.sizeOf(context).width >= 900;
     final profile = ref.watch(authControllerProvider).profile;
+    final auth = ref.watch(authControllerProvider);
+    final roleLabel = auth.isPlatformSuperAdmin && role == UserRole.superAdmin
+        ? 'Super Admin Platform'
+        : auth.membershipRole?.label ?? role.label;
 
     if (role == UserRole.member && !isDesktop) {
       return Scaffold(
@@ -72,6 +91,11 @@ class AppShell extends ConsumerWidget {
           title: const _ShellBrand(compact: true),
           backgroundColor: AppColors.cream,
           actions: [
+            if (auth.memberships.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: CommunitySwitcher(compact: true),
+              ),
             IconButton(
               tooltip: 'Keluar',
               onPressed: () =>
@@ -103,7 +127,7 @@ class AppShell extends ConsumerWidget {
                 items: items,
                 selectedIndex: selectedIndex,
                 profileName: profile?.fullName ?? '',
-                roleLabel: role.label,
+                roleLabel: roleLabel,
               ),
             ),
       appBar: isDesktop
@@ -121,7 +145,7 @@ class AppShell extends ConsumerWidget {
                 items: items,
                 selectedIndex: selectedIndex,
                 profileName: profile?.fullName ?? '',
-                roleLabel: role.label,
+                roleLabel: roleLabel,
               ),
             ),
           Expanded(child: child),
@@ -161,6 +185,11 @@ class _Sidebar extends ConsumerWidget {
       child: SafeArea(
         child: Column(
           children: [
+            if (ref.watch(authControllerProvider).memberships.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 16),
+                child: CommunitySwitcher(),
+              ),
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 24, 24, 20),
               child: _ShellBrand(),
@@ -253,6 +282,97 @@ class _Sidebar extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CommunitySwitcher extends ConsumerWidget {
+  const CommunitySwitcher({super.key, this.compact = false});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authControllerProvider);
+    if (auth.memberships.isEmpty) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      tooltip: 'Ganti komunitas',
+      onSelected: (communityId) {
+        if (communityId == '__select__') {
+          context.go('/select-community');
+          return;
+        }
+        ref.read(authControllerProvider.notifier).selectCommunity(communityId);
+        final membership = ref
+            .read(authControllerProvider)
+            .memberships
+            .firstWhere((item) => item.communityId == communityId);
+        context.go(
+          membership.canManage ? '/admin/dashboard' : '/member/dashboard',
+        );
+      },
+      itemBuilder: (_) => [
+        for (final membership in auth.memberships)
+          PopupMenuItem(
+            value: membership.communityId,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                membership.communityId == auth.selectedCommunityId
+                    ? Icons.check_circle_rounded
+                    : Icons.apartment_rounded,
+                color: AppColors.forest,
+              ),
+              title: Text(membership.community.name),
+              subtitle: Text(membership.role.label),
+            ),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: '__select__',
+          child: Text('Lihat semua komunitas'),
+        ),
+      ],
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 12,
+          vertical: 9,
+        ),
+        decoration: BoxDecoration(
+          color: compact
+              ? AppColors.forest.withValues(alpha: .08)
+              : Colors.white.withValues(alpha: .1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.apartment_rounded,
+              size: 18,
+              color: compact ? AppColors.forest : Colors.white,
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: compact ? 130 : 180),
+              child: Text(
+                auth.selectedMembership?.community.name ?? 'Pilih komunitas',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: compact ? AppColors.ink : Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.expand_more_rounded,
+              color: compact ? AppColors.ink : Colors.white,
             ),
           ],
         ),

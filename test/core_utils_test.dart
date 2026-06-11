@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kaswarga/core/constants/app_constants.dart';
 import 'package:kaswarga/core/routing/role_route_guard.dart';
 import 'package:kaswarga/core/utils/app_formatters.dart';
+import 'package:kaswarga/core/utils/community_code.dart';
 import 'package:kaswarga/core/utils/phone_number_formatter.dart';
 import 'package:kaswarga/core/utils/validators.dart';
 
@@ -100,6 +101,31 @@ void main() {
         isFalse,
       );
       expect(roleHomePath(UserRole.admin), '/admin/dashboard');
+      expect(
+        membershipHomePath(MembershipRole.treasurer),
+        '/admin/dashboard',
+      );
+      expect(
+        isRouteAllowedForMembership(
+          MembershipRole.member,
+          '/admin/dashboard',
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('CommunityCode', () {
+    test('generate kode uppercase yang valid', () {
+      final code = CommunityCode.generate('Cluster Melati RT 05', year: 2026);
+      expect(code, 'CLUSTER-MELATI-RT-05-2026');
+      expect(CommunityCode.isValid(code), isTrue);
+    });
+
+    test('menolak karakter dan panjang yang tidak valid', () {
+      expect(CommunityCode.isValid('RT 05'), isFalse);
+      expect(CommunityCode.isValid('ABCD'), isFalse);
+      expect(CommunityCode.isValid('MELATI-RT05'), isTrue);
     });
   });
 }

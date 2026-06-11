@@ -1,25 +1,5 @@
--- Jalankan setelah migration. Password seluruh akun demo: password123
--- Seed ini ditujukan untuk project Supabase lokal/development.
+-- Seed development SaaS multi-tenant. Password seluruh akun: password123
 
-insert into public.communities (
-  id,
-  name,
-  address,
-  city,
-  province,
-  postal_code,
-  is_active
-)
-values (
-  '11111111-1111-1111-1111-111111111111',
-  'Warga Harmoni RT 05',
-  'Jl. Melati Raya No. 5',
-  'Bandung',
-  'Jawa Barat',
-  '40123',
-  true
-)
-on conflict (id) do nothing;
 insert into auth.users (
   instance_id,
   id,
@@ -56,7 +36,7 @@ values
     crypt('password123', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Budi Bendahara","phone_number":"+628111111111"}',
+    '{"full_name":"Budi Owner Melati","phone_number":"+628111111111"}',
     now(),
     now()
   ),
@@ -95,7 +75,7 @@ values
     crypt('password123', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Warga Demo 3","phone_number":"+628111111114"}',
+    '{"full_name":"Sari Owner Gardenia","phone_number":"+628111111114"}',
     now(),
     now()
   )
@@ -135,28 +115,139 @@ where id in (
 )
 on conflict (provider_id, provider) do nothing;
 
-update public.profiles
-set role = 'super_admin', community_id = null
-where id = '22222222-2222-2222-2222-222222222222';
+insert into public.platform_admins (user_id)
+values ('22222222-2222-2222-2222-222222222222')
+on conflict do nothing;
 
-update public.profiles
-set role = 'admin', community_id = '11111111-1111-1111-1111-111111111111'
-where id = '33333333-3333-3333-3333-333333333333';
+insert into public.communities (
+  id,
+  name,
+  type,
+  address,
+  city,
+  province,
+  postal_code,
+  community_code,
+  is_code_join_enabled,
+  require_admin_approval,
+  is_active,
+  created_by
+)
+values
+  (
+    '11111111-1111-1111-1111-111111111111',
+    'Cluster Melati RT 05',
+    'cluster',
+    'Jl. Melati Raya No. 5',
+    'Bandung',
+    'Jawa Barat',
+    '40123',
+    'MELATI-RT05',
+    true,
+    true,
+    true,
+    '33333333-3333-3333-3333-333333333333'
+  ),
+  (
+    '11111111-1111-1111-1111-111111111112',
+    'Perhimpunan Warga Gardenia',
+    'perhimpunan_warga',
+    'Jl. Gardenia Utama No. 8',
+    'Bekasi',
+    'Jawa Barat',
+    '17145',
+    'GARDENIA-2026',
+    true,
+    false,
+    true,
+    '44444444-4444-4444-4444-444444444443'
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  type = excluded.type,
+  community_code = excluded.community_code,
+  created_by = excluded.created_by;
 
-update public.profiles
-set role = 'member', community_id = '11111111-1111-1111-1111-111111111111'
-where id in (
-  '44444444-4444-4444-4444-444444444441',
-  '44444444-4444-4444-4444-444444444442',
-  '44444444-4444-4444-4444-444444444443'
-);
-
-insert into public.community_members (
+insert into public.community_memberships (
   id,
   community_id,
   user_id,
-  full_name,
-  phone_number,
+  role,
+  status,
+  joined_via,
+  approved_by,
+  approved_at
+)
+values
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
+    '11111111-1111-1111-1111-111111111111',
+    '33333333-3333-3333-3333-333333333333',
+    'owner',
+    'active',
+    'created_community',
+    '33333333-3333-3333-3333-333333333333',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444441',
+    'member',
+    'active',
+    'community_code',
+    '33333333-3333-3333-3333-333333333333',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444442',
+    'treasurer',
+    'active',
+    'invitation_email',
+    '33333333-3333-3333-3333-333333333333',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4',
+    '11111111-1111-1111-1111-111111111112',
+    '44444444-4444-4444-4444-444444444443',
+    'owner',
+    'active',
+    'created_community',
+    '44444444-4444-4444-4444-444444444443',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5',
+    '11111111-1111-1111-1111-111111111112',
+    '44444444-4444-4444-4444-444444444441',
+    'admin',
+    'active',
+    'community_code',
+    '44444444-4444-4444-4444-444444444443',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6',
+    '11111111-1111-1111-1111-111111111111',
+    '44444444-4444-4444-4444-444444444443',
+    'member',
+    'pending',
+    'community_code',
+    null,
+    null
+  )
+on conflict (community_id, user_id) do nothing;
+
+insert into public.community_member_details (
+  id,
+  community_id,
+  user_id,
+  membership_id,
+  full_name_in_community,
+  phone_number_in_community,
   house_block,
   house_number,
   family_count,
@@ -167,6 +258,7 @@ values
     '44444444-4444-4444-4444-444444444441',
     '11111111-1111-1111-1111-111111111111',
     '44444444-4444-4444-4444-444444444441',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2',
     'Warga Demo 1',
     '+628111111112',
     'A',
@@ -178,6 +270,7 @@ values
     '44444444-4444-4444-4444-444444444442',
     '11111111-1111-1111-1111-111111111111',
     '44444444-4444-4444-4444-444444444442',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3',
     'Warga Demo 2',
     '+628111111113',
     'A',
@@ -187,16 +280,47 @@ values
   ),
   (
     '44444444-4444-4444-4444-444444444443',
-    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-1111-1111-111111111112',
     '44444444-4444-4444-4444-444444444443',
-    'Warga Demo 3',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4',
+    'Sari Owner Gardenia',
     '+628111111114',
-    'B',
+    'G',
     '01',
     2,
     'active'
+  ),
+  (
+    '44444444-4444-4444-4444-444444444445',
+    '11111111-1111-1111-1111-111111111112',
+    '44444444-4444-4444-4444-444444444441',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5',
+    'Warga Demo 1',
+    '+628111111112',
+    'G',
+    '02',
+    3,
+    'active'
   )
 on conflict (id) do nothing;
+
+insert into public.community_subscriptions (
+  community_id,
+  plan_id,
+  status,
+  trial_ends_at
+)
+select community_id, plan.id, 'active', null
+from (
+  values
+    ('11111111-1111-1111-1111-111111111111'::uuid),
+    ('11111111-1111-1111-1111-111111111112'::uuid)
+) communities(community_id)
+cross join public.subscription_plans plan
+where plan.code = 'free'
+on conflict (community_id) do update set
+  plan_id = excluded.plan_id,
+  status = excluded.status;
 
 insert into public.payment_accounts (
   id,
@@ -301,20 +425,6 @@ values
     '11111111-1111-1111-1111-111111111111/44444444-4444-4444-4444-444444444442/demo.jpg',
     null,
     null
-  ),
-  (
-    '77777777-7777-7777-7777-777777777773',
-    '66666666-6666-6666-6666-666666666666',
-    '11111111-1111-1111-1111-111111111111',
-    '44444444-4444-4444-4444-444444444443',
-    150000,
-    'paid',
-    '55555555-5555-5555-5555-555555555551',
-    current_date - 1,
-    'bank_transfer',
-    '11111111-1111-1111-1111-111111111111/44444444-4444-4444-4444-444444444443/demo.jpg',
-    '33333333-3333-3333-3333-333333333333',
-    now()
   )
 on conflict (id) do nothing;
 
@@ -326,14 +436,23 @@ insert into public.announcements (
   is_pinned,
   created_by
 )
-values (
-  '99999999-9999-9999-9999-999999999999',
-  '11111111-1111-1111-1111-111111111111',
-  'Kerja Bakti Minggu Pagi',
-  'Mari berkumpul pukul 07.00 di balai warga. Peralatan kebersihan disiapkan panitia.',
-  true,
-  '33333333-3333-3333-3333-333333333333'
-)
+values
+  (
+    '99999999-9999-9999-9999-999999999991',
+    '11111111-1111-1111-1111-111111111111',
+    'Kerja Bakti Minggu Pagi',
+    'Mari berkumpul pukul 07.00 di balai warga.',
+    true,
+    '33333333-3333-3333-3333-333333333333'
+  ),
+  (
+    '99999999-9999-9999-9999-999999999992',
+    '11111111-1111-1111-1111-111111111112',
+    'Rapat Gardenia',
+    'Rapat bulanan dilaksanakan Jumat pukul 19.30.',
+    true,
+    '44444444-4444-4444-4444-444444444443'
+  )
 on conflict (id) do nothing;
 
 insert into public.expenses (
@@ -343,7 +462,6 @@ insert into public.expenses (
   description,
   amount,
   expense_date,
-  receipt_image_url,
   created_by
 )
 values (
@@ -353,7 +471,48 @@ values (
   'Penggantian dua lampu area gerbang.',
   75000,
   current_date - 2,
-  null,
   '33333333-3333-3333-3333-333333333333'
 )
 on conflict (id) do nothing;
+
+insert into public.community_invitations (
+  id,
+  community_id,
+  invited_email,
+  invited_phone_number,
+  invited_full_name,
+  role,
+  invitation_token,
+  status,
+  expires_at,
+  invited_by
+)
+values (
+  'dddddddd-dddd-dddd-dddd-ddddddddddd1',
+  '11111111-1111-1111-1111-111111111112',
+  'member2@kaswarga.local',
+  '+628111111113',
+  'Warga Demo 2',
+  'member',
+  'demo-undangan-gardenia-2026',
+  'pending',
+  now() + interval '7 days',
+  '44444444-4444-4444-4444-444444444443'
+)
+on conflict (id) do nothing;
+
+insert into public.community_join_requests (
+  id,
+  community_id,
+  user_id,
+  request_note,
+  status
+)
+values (
+  'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
+  '11111111-1111-1111-1111-111111111111',
+  '44444444-4444-4444-4444-444444444443',
+  'Saya tinggal di Blok C dan ingin bergabung.',
+  'pending'
+)
+on conflict (community_id, user_id) do nothing;

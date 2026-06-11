@@ -55,3 +55,21 @@ final cashSummaryProvider =
     FutureProvider.family<CashSummary, String>((ref, communityId) {
   return ref.watch(appRepositoryProvider).getCashSummary(communityId);
 });
+
+final invitationsProvider =
+    FutureProvider.family<List<CommunityInvitation>, String>(
+  (ref, communityId) =>
+      ref.watch(appRepositoryProvider).getInvitations(communityId),
+);
+
+final joinRequestsProvider =
+    FutureProvider.family<List<CommunityJoinRequest>, String>(
+  (ref, communityId) =>
+      ref.watch(appRepositoryProvider).getJoinRequests(communityId),
+);
+
+final communitySubscriptionProvider =
+    FutureProvider.family<CommunitySubscription?, String>(
+  (ref, communityId) =>
+      ref.watch(appRepositoryProvider).getCommunitySubscription(communityId),
+);

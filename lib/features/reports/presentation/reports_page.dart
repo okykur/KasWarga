@@ -27,8 +27,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     final bills = ref.watch(
       billsProvider(
         (communityId: communityId, memberId: null, status: _status),

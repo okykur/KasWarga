@@ -11,24 +11,21 @@ class UserProfile {
     required this.fullName,
     required this.email,
     required this.phoneNumber,
-    required this.role,
-    this.communityId,
+    this.avatarUrl,
   });
 
   final String id;
   final String fullName;
   final String email;
   final String phoneNumber;
-  final UserRole role;
-  final String? communityId;
+  final String? avatarUrl;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
         id: json['id'] as String,
         fullName: json['full_name'] as String? ?? '',
         email: json['email'] as String? ?? '',
         phoneNumber: json['phone_number'] as String? ?? '',
-        role: UserRole.fromValue(json['role'] as String?),
-        communityId: json['community_id'] as String?,
+        avatarUrl: json['avatar_url'] as String?,
       );
 }
 
@@ -40,7 +37,12 @@ class Community {
     required this.city,
     required this.province,
     required this.postalCode,
+    required this.type,
+    required this.communityCode,
+    required this.isCodeJoinEnabled,
+    required this.requireAdminApproval,
     required this.isActive,
+    this.createdBy,
   });
 
   final String id;
@@ -49,7 +51,12 @@ class Community {
   final String city;
   final String province;
   final String postalCode;
+  final CommunityType type;
+  final String communityCode;
+  final bool isCodeJoinEnabled;
+  final bool requireAdminApproval;
   final bool isActive;
+  final String? createdBy;
 
   factory Community.fromJson(Map<String, dynamic> json) => Community(
         id: json['id'] as String,
@@ -58,7 +65,195 @@ class Community {
         city: json['city'] as String? ?? '',
         province: json['province'] as String? ?? '',
         postalCode: json['postal_code'] as String? ?? '',
+        type: CommunityType.fromValue(json['type'] as String?),
+        communityCode: json['community_code'] as String? ?? '',
+        isCodeJoinEnabled: json['is_code_join_enabled'] as bool? ?? true,
+        requireAdminApproval: json['require_admin_approval'] as bool? ?? true,
         isActive: json['is_active'] as bool? ?? true,
+        createdBy: json['created_by'] as String?,
+      );
+}
+
+class CommunityMembership {
+  const CommunityMembership({
+    required this.id,
+    required this.communityId,
+    required this.userId,
+    required this.role,
+    required this.status,
+    required this.joinedVia,
+    required this.community,
+  });
+
+  final String id;
+  final String communityId;
+  final String userId;
+  final MembershipRole role;
+  final String status;
+  final String joinedVia;
+  final Community community;
+
+  bool get isActive => status == 'active';
+  bool get canManage => role.canManage;
+
+  factory CommunityMembership.fromJson(Map<String, dynamic> json) {
+    final communityJson = json['communities'] as Map<String, dynamic>? ??
+        json['community'] as Map<String, dynamic>? ??
+        const <String, dynamic>{};
+    return CommunityMembership(
+      id: json['id'] as String,
+      communityId: json['community_id'] as String,
+      userId: json['user_id'] as String,
+      role: MembershipRole.fromValue(json['role'] as String?),
+      status: json['status'] as String? ?? 'pending',
+      joinedVia: json['joined_via'] as String? ?? 'community_code',
+      community: Community.fromJson({
+        ...communityJson,
+        'id': communityJson['id'] ?? json['community_id'],
+      }),
+    );
+  }
+}
+
+class CommunityInvitation {
+  const CommunityInvitation({
+    required this.id,
+    required this.communityId,
+    required this.invitedEmail,
+    required this.role,
+    required this.token,
+    required this.status,
+    required this.expiresAt,
+    this.invitedFullName,
+    this.invitedPhoneNumber,
+    this.communityName,
+  });
+
+  final String id;
+  final String communityId;
+  final String invitedEmail;
+  final String? invitedPhoneNumber;
+  final String? invitedFullName;
+  final MembershipRole role;
+  final String token;
+  final String status;
+  final DateTime expiresAt;
+  final String? communityName;
+
+  bool get isExpired => expiresAt.isBefore(DateTime.now());
+
+  factory CommunityInvitation.fromJson(Map<String, dynamic> json) {
+    final community = json['communities'] as Map<String, dynamic>?;
+    return CommunityInvitation(
+      id: json['id'] as String,
+      communityId: json['community_id'] as String,
+      invitedEmail: json['invited_email'] as String? ?? '',
+      invitedPhoneNumber: json['invited_phone_number'] as String?,
+      invitedFullName: json['invited_full_name'] as String?,
+      role: MembershipRole.fromValue(json['role'] as String?),
+      token: json['invitation_token'] as String,
+      status: json['status'] as String? ?? 'pending',
+      expiresAt: _date(json['expires_at']) ?? DateTime.now(),
+      communityName: community?['name'] as String?,
+    );
+  }
+}
+
+class CommunityJoinRequest {
+  const CommunityJoinRequest({
+    required this.id,
+    required this.communityId,
+    required this.userId,
+    required this.status,
+    this.requestNote,
+    this.requesterName,
+    this.requesterEmail,
+  });
+
+  final String id;
+  final String communityId;
+  final String userId;
+  final String status;
+  final String? requestNote;
+  final String? requesterName;
+  final String? requesterEmail;
+
+  factory CommunityJoinRequest.fromJson(Map<String, dynamic> json) {
+    final profile = json['profiles'] as Map<String, dynamic>?;
+    return CommunityJoinRequest(
+      id: json['id'] as String,
+      communityId: json['community_id'] as String,
+      userId: json['user_id'] as String,
+      status: json['status'] as String? ?? 'pending',
+      requestNote: json['request_note'] as String?,
+      requesterName: profile?['full_name'] as String?,
+      requesterEmail: profile?['email'] as String?,
+    );
+  }
+}
+
+class SubscriptionPlan {
+  const SubscriptionPlan({
+    required this.id,
+    required this.name,
+    required this.code,
+    required this.priceMonthly,
+    this.maxMembers,
+    this.maxAdmins,
+    this.maxCommunities,
+    required this.features,
+  });
+
+  final String id;
+  final String name;
+  final String code;
+  final double priceMonthly;
+  final int? maxMembers;
+  final int? maxAdmins;
+  final int? maxCommunities;
+  final Map<String, dynamic> features;
+
+  factory SubscriptionPlan.fromJson(Map<String, dynamic> json) =>
+      SubscriptionPlan(
+        id: json['id'] as String,
+        name: json['name'] as String? ?? '',
+        code: json['code'] as String? ?? '',
+        priceMonthly: _double(json['price_monthly']),
+        maxMembers: json['max_members'] as int?,
+        maxAdmins: json['max_admins'] as int?,
+        maxCommunities: json['max_communities'] as int?,
+        features: Map<String, dynamic>.from(
+          json['features'] as Map? ?? const {},
+        ),
+      );
+}
+
+class CommunitySubscription {
+  const CommunitySubscription({
+    required this.id,
+    required this.communityId,
+    required this.status,
+    required this.plan,
+    this.trialEndsAt,
+  });
+
+  final String id;
+  final String communityId;
+  final String status;
+  final SubscriptionPlan plan;
+  final DateTime? trialEndsAt;
+
+  factory CommunitySubscription.fromJson(Map<String, dynamic> json) =>
+      CommunitySubscription(
+        id: json['id'] as String,
+        communityId: json['community_id'] as String,
+        status: json['status'] as String? ?? 'trial',
+        trialEndsAt: _date(json['trial_ends_at']),
+        plan: SubscriptionPlan.fromJson(
+          Map<String, dynamic>.from(
+            json['subscription_plans'] as Map? ?? const {},
+          ),
+        ),
       );
 }
 
@@ -126,8 +321,12 @@ class CommunityMember {
         id: json['id'] as String,
         communityId: json['community_id'] as String,
         userId: json['user_id'] as String?,
-        fullName: json['full_name'] as String? ?? '',
-        phoneNumber: json['phone_number'] as String? ?? '',
+        fullName: json['full_name_in_community'] as String? ??
+            json['full_name'] as String? ??
+            '',
+        phoneNumber: json['phone_number_in_community'] as String? ??
+            json['phone_number'] as String? ??
+            '',
         houseBlock: json['house_block'] as String? ?? '',
         houseNumber: json['house_number'] as String? ?? '',
         familyCount: json['family_count'] as int? ?? 1,
@@ -209,7 +408,8 @@ class Bill {
 
   factory Bill.fromJson(Map<String, dynamic> json) {
     final dues = json['dues'] as Map<String, dynamic>?;
-    final member = json['community_members'] as Map<String, dynamic>?;
+    final member = json['community_member_details'] as Map<String, dynamic>? ??
+        json['community_members'] as Map<String, dynamic>?;
     return Bill(
       id: json['id'] as String,
       duesId: json['dues_id'] as String,
@@ -227,7 +427,8 @@ class Bill {
       title: dues?['title'] as String?,
       dueMonth: dues?['month'] as int?,
       dueYear: dues?['year'] as int?,
-      memberName: member?['full_name'] as String?,
+      memberName: member?['full_name_in_community'] as String? ??
+          member?['full_name'] as String?,
     );
   }
 }

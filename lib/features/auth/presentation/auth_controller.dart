@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/phone_number_formatter.dart';
 import '../../../shared/models/app_models.dart';
 import '../../../shared/services/app_repository.dart';
@@ -9,25 +10,45 @@ import '../../../shared/services/app_repository.dart';
 class AuthState {
   const AuthState({
     this.profile,
+    this.memberships = const [],
+    this.selectedCommunityId,
+    this.isPlatformSuperAdmin = false,
     this.isLoading = false,
     this.errorMessage,
   });
 
   final UserProfile? profile;
+  final List<CommunityMembership> memberships;
+  final String? selectedCommunityId;
+  final bool isPlatformSuperAdmin;
   final bool isLoading;
   final String? errorMessage;
 
   bool get isAuthenticated => profile != null;
+  CommunityMembership? get selectedMembership => memberships
+      .where((item) => item.communityId == selectedCommunityId)
+      .firstOrNull;
+  MembershipRole? get membershipRole => selectedMembership?.role;
+  bool get canManageSelectedCommunity => selectedMembership?.canManage ?? false;
 
   AuthState copyWith({
     UserProfile? profile,
     bool clearProfile = false,
+    List<CommunityMembership>? memberships,
+    String? selectedCommunityId,
+    bool clearSelectedCommunity = false,
+    bool? isPlatformSuperAdmin,
     bool? isLoading,
     String? errorMessage,
     bool clearError = false,
   }) {
     return AuthState(
       profile: clearProfile ? null : profile ?? this.profile,
+      memberships: memberships ?? this.memberships,
+      selectedCommunityId: clearSelectedCommunity
+          ? null
+          : selectedCommunityId ?? this.selectedCommunityId,
+      isPlatformSuperAdmin: isPlatformSuperAdmin ?? this.isPlatformSuperAdmin,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
@@ -50,7 +71,7 @@ class AuthController extends StateNotifier<AuthState> {
       state = const AuthState();
       return;
     }
-    await _loadProfile(user.id);
+    await _loadAccount(user.id);
   }
 
   Future<bool> login({
@@ -61,7 +82,7 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       if (_client == null) {
         final profile = _demoLogin(identifier, password);
-        state = AuthState(profile: profile);
+        await _loadAccount(profile.id, profile: profile);
         return true;
       }
 
@@ -98,7 +119,7 @@ class AuthController extends StateNotifier<AuthState> {
       if (response.user == null) {
         throw const AuthDisplayException('Login belum berhasil.');
       }
-      await _loadProfile(response.user!.id);
+      await _loadAccount(response.user!.id);
       return true;
     } on AuthException catch (error) {
       final message = error.message.toLowerCase().contains('invalid login')
@@ -146,7 +167,6 @@ class AuthController extends StateNotifier<AuthState> {
         data: {
           'full_name': fullName.trim(),
           'phone_number': normalized,
-          'role': 'member',
         },
       );
       state = const AuthState();
@@ -192,11 +212,52 @@ class AuthController extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
-  Future<void> _loadProfile(String userId) async {
+  Future<void> refreshTenancy({String? preferredCommunityId}) async {
+    final profile = state.profile;
+    if (profile == null) return;
+    await _loadAccount(
+      profile.id,
+      profile: profile,
+      preferredCommunityId: preferredCommunityId ?? state.selectedCommunityId,
+    );
+  }
+
+  void selectCommunity(String communityId) {
+    final membership = state.memberships
+        .where((item) => item.communityId == communityId && item.isActive)
+        .firstOrNull;
+    if (membership == null) return;
+    state = state.copyWith(
+      selectedCommunityId: communityId,
+      clearError: true,
+    );
+  }
+
+  Future<void> _loadAccount(
+    String userId, {
+    UserProfile? profile,
+    String? preferredCommunityId,
+  }) async {
     try {
-      final rows = await _repository.getProfiles();
-      final profile = rows.firstWhere((item) => item.id == userId);
-      state = AuthState(profile: profile);
+      final resolvedProfile = profile ??
+          (await _repository.getProfiles())
+              .firstWhere((item) => item.id == userId);
+      final memberships = await _repository.getUserMemberships(userId);
+      final isPlatformAdmin = await _repository.isPlatformSuperAdmin(userId);
+      final preferredIsActive = memberships.any(
+        (item) => item.communityId == preferredCommunityId,
+      );
+      final selectedId = preferredIsActive
+          ? preferredCommunityId
+          : memberships.length == 1
+              ? memberships.first.communityId
+              : null;
+      state = AuthState(
+        profile: resolvedProfile,
+        memberships: memberships,
+        selectedCommunityId: selectedId,
+        isPlatformSuperAdmin: isPlatformAdmin,
+      );
     } catch (_) {
       state = const AuthState(
         errorMessage: 'Profil pengguna tidak ditemukan.',

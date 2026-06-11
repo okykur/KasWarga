@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_formatters.dart';
 import '../../../core/utils/validators.dart';
@@ -15,8 +14,7 @@ class DuesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     final dues = ref.watch(duesProvider(communityId));
     return PageScaffold(
       title: 'Iuran Bulanan',

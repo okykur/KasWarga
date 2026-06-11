@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_formatters.dart';
@@ -35,8 +34,7 @@ class _AdminBillsPageState extends ConsumerState<AdminBillsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     final bills = ref.watch(
       billsProvider(
         (communityId: communityId, memberId: null, status: _status),
@@ -371,9 +369,12 @@ class MemberBillsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     return FutureBuilder<String?>(
-      future: ref.read(appRepositoryProvider).getMemberIdForUser(profile.id),
+      future: ref.read(appRepositoryProvider).getMemberIdForUser(
+            profile.id,
+            communityId: communityId,
+          ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return PageScaffold(
@@ -382,7 +383,7 @@ class MemberBillsPage extends ConsumerWidget {
             child: const SizedBox(height: 360, child: LoadingView()),
           );
         }
-        if (snapshot.data == null && AppConfig.isSupabaseConfigured) {
+        if (snapshot.data == null) {
           return PageScaffold(
             title: historyOnly ? 'Riwayat Pembayaran' : 'Tagihan Saya',
             subtitle: 'Akun belum terhubung ke data anggota.',
@@ -399,7 +400,7 @@ class MemberBillsPage extends ConsumerWidget {
             ),
           );
         }
-        final memberId = snapshot.data ?? AppConstants.demoMemberId;
+        final memberId = snapshot.data!;
         final bills = ref.watch(
           billsProvider(
             (communityId: communityId, memberId: memberId, status: null),
@@ -525,9 +526,12 @@ class _MemberBillDetailPageState extends ConsumerState<MemberBillDetailPage> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(authControllerProvider).profile!;
-    final communityId = profile.communityId ?? AppConstants.demoCommunityId;
+    final communityId = ref.watch(authControllerProvider).selectedCommunityId!;
     return FutureBuilder<String?>(
-      future: ref.read(appRepositoryProvider).getMemberIdForUser(profile.id),
+      future: ref.read(appRepositoryProvider).getMemberIdForUser(
+            profile.id,
+            communityId: communityId,
+          ),
       builder: (context, memberSnapshot) {
         if (memberSnapshot.connectionState == ConnectionState.waiting) {
           return const PageScaffold(
@@ -536,7 +540,7 @@ class _MemberBillDetailPageState extends ConsumerState<MemberBillDetailPage> {
             child: SizedBox(height: 360, child: LoadingView()),
           );
         }
-        if (memberSnapshot.data == null && AppConfig.isSupabaseConfigured) {
+        if (memberSnapshot.data == null) {
           return const PageScaffold(
             title: 'Detail Tagihan',
             subtitle: 'Akun belum terhubung ke data anggota.',
@@ -553,7 +557,7 @@ class _MemberBillDetailPageState extends ConsumerState<MemberBillDetailPage> {
             ),
           );
         }
-        final memberId = memberSnapshot.data ?? AppConstants.demoMemberId;
+        final memberId = memberSnapshot.data!;
         final bills = ref.watch(
           billsProvider(
             (communityId: communityId, memberId: memberId, status: null),
