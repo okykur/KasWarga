@@ -144,14 +144,13 @@ class _MembersPageState extends ConsumerState<MembersPage> {
                               member.status == 'active' ? 'Aktif' : 'Nonaktif',
                             ),
                           ),
-                          IconButton(
-                            tooltip: 'Edit',
-                            onPressed: () => _showForm(
+                          MasterActions(
+                            onView: () => _showDetail(context, member),
+                            onEdit: () => _showForm(
                               context,
                               communityId,
                               member: member,
                             ),
-                            icon: const Icon(Icons.edit_outlined),
                           ),
                         ],
                       ),
@@ -180,6 +179,53 @@ class _MembersPageState extends ConsumerState<MembersPage> {
     );
     if (saved == true) ref.invalidate(membersProvider);
   }
+
+  Future<void> _showDetail(
+    BuildContext context,
+    CommunityMember member,
+  ) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Detail Anggota'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DetailRow(label: 'Nama lengkap', value: member.fullName),
+                DetailRow(
+                  label: 'Nomor HP',
+                  value: member.phoneNumber.isEmpty ? '-' : member.phoneNumber,
+                ),
+                DetailRow(
+                  label: 'Alamat rumah',
+                  value: 'Blok ${member.houseBlock}-${member.houseNumber}',
+                ),
+                DetailRow(
+                  label: 'Jumlah keluarga',
+                  value: '${member.familyCount} orang',
+                ),
+                DetailRow(
+                  label: 'Status',
+                  value: member.status == 'active' ? 'Aktif' : 'Nonaktif',
+                ),
+                DetailRow(
+                  label: 'Akun login',
+                  value:
+                      member.userId == null ? 'Belum terhubung' : 'Terhubung',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _MemberForm extends ConsumerStatefulWidget {

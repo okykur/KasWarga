@@ -6,6 +6,7 @@ import '../../../core/utils/app_formatters.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_shell.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../shared/models/app_models.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/services/file_upload_service.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -20,23 +21,16 @@ class ExpensesPage extends ConsumerWidget {
     final expenses = ref.watch(expensesProvider(communityId));
     return PageScaffold(
       title: 'Pengeluaran Kas',
-      subtitle: 'Catat penggunaan dana dan lampirkan foto nota bila tersedia.',
+      subtitle: 'Catat, lihat, dan ubah penggunaan dana komunitas.',
       action: AppButton(
         label: 'Catat Pengeluaran',
         icon: Icons.add_rounded,
-        onPressed: () async {
-          final saved = await showDialog<bool>(
-            context: context,
-            builder: (_) => _ExpenseForm(
-              communityId: communityId,
-              userId: profile.id,
-            ),
-          );
-          if (saved == true) {
-            ref.invalidate(expensesProvider);
-            ref.invalidate(cashSummaryProvider);
-          }
-        },
+        onPressed: () => _showForm(
+          context,
+          ref,
+          communityId: communityId,
+          userId: profile.id,
+        ),
       ),
       child: expenses.when(
         loading: () => const SizedBox(height: 360, child: LoadingView()),
@@ -80,14 +74,30 @@ class ExpensesPage extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     '${AppFormatters.date(expense.expenseDate)}'
-                    '${expense.receiptImageUrl == null ? '' : ' • Ada bukti nota'}',
+                    '${expense.receiptImageUrl == null ? '' : ' - Ada bukti nota'}',
                   ),
-                  trailing: Text(
-                    '-${AppFormatters.rupiah(expense.amount)}',
-                    style: const TextStyle(
-                      color: AppColors.danger,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  trailing: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '-${AppFormatters.rupiah(expense.amount)}',
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      MasterActions(
+                        onView: () => _showDetail(context, expense),
+                        onEdit: () => _showForm(
+                          context,
+                          ref,
+                          communityId: communityId,
+                          userId: profile.id,
+                          expense: expense,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -97,12 +107,82 @@ class ExpensesPage extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _showForm(
+    BuildContext context,
+    WidgetRef ref, {
+    required String communityId,
+    required String userId,
+    Expense? expense,
+  }) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ExpenseForm(
+        communityId: communityId,
+        userId: userId,
+        expense: expense,
+      ),
+    );
+    if (saved == true) {
+      ref.invalidate(expensesProvider);
+      ref.invalidate(cashSummaryProvider);
+    }
+  }
+
+  Future<void> _showDetail(BuildContext context, Expense expense) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Detail Pengeluaran'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DetailRow(label: 'Judul', value: expense.title),
+                DetailRow(
+                  label: 'Tanggal',
+                  value: AppFormatters.date(expense.expenseDate),
+                ),
+                DetailRow(
+                  label: 'Nominal',
+                  value: AppFormatters.rupiah(expense.amount),
+                ),
+                DetailRow(
+                  label: 'Deskripsi',
+                  value: expense.description?.trim().isNotEmpty == true
+                      ? expense.description!
+                      : '-',
+                ),
+                DetailRow(
+                  label: 'Bukti nota',
+                  value: expense.receiptImageUrl == null
+                      ? 'Tidak ada'
+                      : 'Tersedia',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _ExpenseForm extends ConsumerStatefulWidget {
-  const _ExpenseForm({required this.communityId, required this.userId});
+  const _ExpenseForm({
+    required this.communityId,
+    required this.userId,
+    this.expense,
+  });
+
   final String communityId;
   final String userId;
+  final Expense? expense;
 
   @override
   ConsumerState<_ExpenseForm> createState() => _ExpenseFormState();
@@ -110,12 +190,24 @@ class _ExpenseForm extends ConsumerStatefulWidget {
 
 class _ExpenseFormState extends ConsumerState<_ExpenseForm> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  final _description = TextEditingController();
-  final _amount = TextEditingController();
-  DateTime _date = DateTime.now();
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _amount;
+  late DateTime _date;
   PickedImage? _receipt;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final expense = widget.expense;
+    _title = TextEditingController(text: expense?.title);
+    _description = TextEditingController(text: expense?.description);
+    _amount = TextEditingController(
+      text: expense?.amount.toStringAsFixed(0),
+    );
+    _date = expense?.expenseDate ?? DateTime.now();
+  }
 
   @override
   void dispose() {
@@ -127,7 +219,9 @@ class _ExpenseFormState extends ConsumerState<_ExpenseForm> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Catat Pengeluaran'),
+        title: Text(
+          widget.expense == null ? 'Catat Pengeluaran' : 'Edit Pengeluaran',
+        ),
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
@@ -162,23 +256,24 @@ class _ExpenseFormState extends ConsumerState<_ExpenseForm> {
                   ),
                   const SizedBox(height: 14),
                   OutlinedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final image = await FileUploadService.pickImage();
-                        if (image != null) setState(() => _receipt = image);
-                      } on FormatException catch (error) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(error.message)),
-                          );
-                        }
-                      }
-                    },
+                    onPressed: _pickReceipt,
                     icon: const Icon(Icons.receipt_long_outlined),
                     label: Text(
-                      _receipt == null ? 'Pilih Foto Nota' : _receipt!.name,
+                      _receipt != null
+                          ? _receipt!.name
+                          : widget.expense?.receiptImageUrl != null
+                              ? 'Ganti Foto Nota'
+                              : 'Pilih Foto Nota',
                     ),
                   ),
+                  if (widget.expense?.receiptImageUrl != null &&
+                      _receipt == null) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Bukti nota lama tetap digunakan jika tidak diganti.',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -190,36 +285,48 @@ class _ExpenseFormState extends ConsumerState<_ExpenseForm> {
             child: const Text('Batal'),
           ),
           FilledButton(
-            onPressed: _saving
-                ? null
-                : () async {
-                    if (!_formKey.currentState!.validate()) return;
-                    setState(() => _saving = true);
-                    try {
-                      await ref.read(appRepositoryProvider).saveExpense(
-                            communityId: widget.communityId,
-                            title: _title.text,
-                            description: _description.text,
-                            amount:
-                                double.parse(_amount.text.replaceAll('.', '')),
-                            expenseDate: _date,
-                            userId: widget.userId,
-                            receiptBytes: _receipt?.bytes,
-                            receiptExtension: _receipt?.extension,
-                          );
-                      if (!mounted) return;
-                      Navigator.pop(this.context, true);
-                    } catch (error) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(content: Text('Gagal menyimpan: $error')),
-                        );
-                        setState(() => _saving = false);
-                      }
-                    }
-                  },
+            onPressed: _saving ? null : _save,
             child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
           ),
         ],
       );
+
+  Future<void> _pickReceipt() async {
+    try {
+      final image = await FileUploadService.pickImage();
+      if (image != null && mounted) setState(() => _receipt = image);
+    } on FormatException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(appRepositoryProvider).saveExpense(
+            id: widget.expense?.id,
+            communityId: widget.communityId,
+            title: _title.text,
+            description: _description.text,
+            amount: double.parse(_amount.text.replaceAll('.', '')),
+            expenseDate: _date,
+            userId: widget.userId,
+            receiptBytes: _receipt?.bytes,
+            receiptExtension: _receipt?.extension,
+            existingReceiptPath: widget.expense?.receiptImageUrl,
+          );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan: $error')),
+      );
+      setState(() => _saving = false);
+    }
+  }
 }

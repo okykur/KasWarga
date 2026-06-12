@@ -66,6 +66,7 @@ class PaymentAccountsPage extends ConsumerWidget {
                       child: PaymentAccountCard(
                         account: account,
                         showAdminActions: true,
+                        onView: () => _showAccountDetail(context, account),
                         onEdit: () => _showAccountForm(
                           context,
                           ref,
@@ -118,6 +119,60 @@ class PaymentAccountsPage extends ConsumerWidget {
     );
     if (saved == true) ref.invalidate(paymentAccountsProvider);
   }
+
+  Future<void> _showAccountDetail(
+    BuildContext context,
+    PaymentAccount account,
+  ) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Detail Rekening'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DetailRow(label: 'Bank', value: account.bankName),
+                DetailRow(
+                  label: 'Nomor rekening',
+                  value: account.accountNumber,
+                ),
+                DetailRow(
+                  label: 'Atas nama',
+                  value: account.accountHolderName,
+                ),
+                DetailRow(
+                  label: 'Cabang',
+                  value: account.branchName?.trim().isNotEmpty == true
+                      ? account.branchName!
+                      : '-',
+                ),
+                DetailRow(
+                  label: 'Instruksi',
+                  value: account.paymentInstruction?.trim().isNotEmpty == true
+                      ? account.paymentInstruction!
+                      : '-',
+                ),
+                DetailRow(
+                  label: 'Status',
+                  value: account.isActive ? 'Aktif' : 'Nonaktif',
+                ),
+                DetailRow(
+                  label: 'Rekening utama',
+                  value: account.isDefault ? 'Ya' : 'Tidak',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
 }
 
 class PaymentAccountCard extends StatelessWidget {
@@ -125,12 +180,14 @@ class PaymentAccountCard extends StatelessWidget {
     super.key,
     required this.account,
     this.showAdminActions = false,
+    this.onView,
     this.onEdit,
     this.onDeactivate,
   });
 
   final PaymentAccount account;
   final bool showAdminActions;
+  final VoidCallback? onView;
   final VoidCallback? onEdit;
   final VoidCallback? onDeactivate;
 
@@ -223,6 +280,12 @@ class PaymentAccountCard extends StatelessWidget {
                   value: account.accountNumber,
                   label: 'Salin Nomor Rekening',
                 ),
+                if (showAdminActions)
+                  IconButton.outlined(
+                    tooltip: 'Lihat detail',
+                    onPressed: onView,
+                    icon: const Icon(Icons.visibility_outlined),
+                  ),
                 if (showAdminActions)
                   IconButton.outlined(
                     tooltip: 'Edit',

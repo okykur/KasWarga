@@ -6,6 +6,7 @@ import '../../../core/utils/app_formatters.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_shell.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../shared/models/app_models.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../auth/presentation/auth_controller.dart';
 
@@ -18,20 +19,11 @@ class DuesPage extends ConsumerWidget {
     final dues = ref.watch(duesProvider(communityId));
     return PageScaffold(
       title: 'Iuran Bulanan',
-      subtitle: 'Buat iuran dan generate tagihan untuk semua anggota aktif.',
+      subtitle: 'Buat, lihat, dan ubah master iuran komunitas.',
       action: AppButton(
         label: 'Buat Iuran',
         icon: Icons.add_card_rounded,
-        onPressed: () async {
-          final saved = await showDialog<bool>(
-            context: context,
-            builder: (_) => _DueForm(communityId: communityId),
-          );
-          if (saved == true) {
-            ref.invalidate(duesProvider);
-            ref.invalidate(billsProvider);
-          }
-        },
+        onPressed: () => _showForm(context, ref, communityId),
       ),
       child: dues.when(
         loading: () => const SizedBox(height: 380, child: LoadingView()),
@@ -85,11 +77,27 @@ class DuesPage extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   subtitle: Text(
-                    '${due.month}/${due.year} • Jatuh tempo ${AppFormatters.date(due.dueDate)}',
+                    '${due.month}/${due.year} - Jatuh tempo '
+                    '${AppFormatters.date(due.dueDate)}',
                   ),
-                  trailing: Text(
-                    AppFormatters.rupiah(due.amount),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  trailing: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        AppFormatters.rupiah(due.amount),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(width: 8),
+                      MasterActions(
+                        onView: () => _showDetail(context, due),
+                        onEdit: () => _showForm(
+                          context,
+                          ref,
+                          communityId,
+                          due: due,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -99,11 +107,70 @@ class DuesPage extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _showForm(
+    BuildContext context,
+    WidgetRef ref,
+    String communityId, {
+    Due? due,
+  }) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => _DueForm(communityId: communityId, due: due),
+    );
+    if (saved == true) {
+      ref.invalidate(duesProvider);
+      ref.invalidate(billsProvider);
+      ref.invalidate(cashSummaryProvider);
+    }
+  }
+
+  Future<void> _showDetail(BuildContext context, Due due) => showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Detail Iuran'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DetailRow(label: 'Judul', value: due.title),
+                DetailRow(
+                  label: 'Periode',
+                  value: '${due.month}/${due.year}',
+                ),
+                DetailRow(
+                  label: 'Nominal',
+                  value: AppFormatters.rupiah(due.amount),
+                ),
+                DetailRow(
+                  label: 'Jatuh tempo',
+                  value: AppFormatters.date(due.dueDate),
+                ),
+                DetailRow(
+                  label: 'Deskripsi',
+                  value: due.description?.trim().isNotEmpty == true
+                      ? due.description!
+                      : '-',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _DueForm extends ConsumerStatefulWidget {
-  const _DueForm({required this.communityId});
+  const _DueForm({required this.communityId, this.due});
+
   final String communityId;
+  final Due? due;
 
   @override
   ConsumerState<_DueForm> createState() => _DueFormState();
@@ -111,29 +178,43 @@ class _DueForm extends ConsumerStatefulWidget {
 
 class _DueFormState extends ConsumerState<_DueForm> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController(text: 'Iuran Bulanan');
-  final _description = TextEditingController();
-  final _amount = TextEditingController(text: '150000');
-  int _month = DateTime.now().month;
-  int _year = DateTime.now().year;
-  DateTime _dueDate = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    10,
-  );
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _amount;
+  late final TextEditingController _yearController;
+  late int _month;
+  late int _year;
+  late DateTime _dueDate;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final due = widget.due;
+    final now = DateTime.now();
+    _title = TextEditingController(text: due?.title ?? 'Iuran Bulanan');
+    _description = TextEditingController(text: due?.description);
+    _amount = TextEditingController(
+      text: due == null ? '150000' : due.amount.toStringAsFixed(0),
+    );
+    _month = due?.month ?? now.month;
+    _year = due?.year ?? now.year;
+    _yearController = TextEditingController(text: '$_year');
+    _dueDate = due?.dueDate ?? DateTime(now.year, now.month, 10);
+  }
 
   @override
   void dispose() {
     _title.dispose();
     _description.dispose();
     _amount.dispose();
+    _yearController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Buat Iuran'),
+        title: Text(widget.due == null ? 'Buat Iuran' : 'Edit Iuran'),
         content: SizedBox(
           width: 540,
           child: SingleChildScrollView(
@@ -182,7 +263,7 @@ class _DueFormState extends ConsumerState<_DueForm> {
                       Expanded(
                         child: AppTextField(
                           label: 'Tahun',
-                          controller: TextEditingController(text: '$_year'),
+                          controller: _yearController,
                           keyboardType: TextInputType.number,
                           onChanged: (value) =>
                               _year = int.tryParse(value) ?? _year,
@@ -212,17 +293,21 @@ class _DueFormState extends ConsumerState<_DueForm> {
                       color: AppColors.amber.withValues(alpha: .12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline_rounded,
                           color: Color(0xFF8B5C00),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Tagihan otomatis dibuat untuk seluruh anggota berstatus aktif.',
+                            widget.due == null
+                                ? 'Tagihan otomatis dibuat untuk seluruh '
+                                    'anggota berstatus aktif.'
+                                : 'Perubahan nominal hanya diterapkan ke '
+                                    'tagihan belum bayar atau ditolak.',
                           ),
                         ),
                       ],
@@ -239,39 +324,45 @@ class _DueFormState extends ConsumerState<_DueForm> {
             child: const Text('Batal'),
           ),
           FilledButton(
-            onPressed: _saving
-                ? null
-                : () async {
-                    if (!_formKey.currentState!.validate()) return;
-                    setState(() => _saving = true);
-                    try {
-                      await ref.read(appRepositoryProvider).createDue(
-                            communityId: widget.communityId,
-                            title: _title.text,
-                            description: _description.text,
-                            month: _month,
-                            year: _year,
-                            amount:
-                                double.parse(_amount.text.replaceAll('.', '')),
-                            dueDate: _dueDate,
-                          );
-                      if (!mounted) return;
-                      Navigator.pop(this.context, true);
-                    } catch (error) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Iuran gagal dibuat. Pastikan periode belum pernah digunakan. $error',
-                            ),
-                          ),
-                        );
-                        setState(() => _saving = false);
-                      }
-                    }
-                  },
-            child: Text(_saving ? 'Membuat...' : 'Buat dan Generate'),
+            onPressed: _saving ? null : _save,
+            child: Text(
+              _saving
+                  ? 'Menyimpan...'
+                  : widget.due == null
+                      ? 'Buat dan Generate'
+                      : 'Simpan Perubahan',
+            ),
           ),
         ],
       );
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(appRepositoryProvider).saveDue(
+            id: widget.due?.id,
+            communityId: widget.communityId,
+            title: _title.text,
+            description: _description.text,
+            month: _month,
+            year: _year,
+            amount: double.parse(_amount.text.replaceAll('.', '')),
+            dueDate: _dueDate,
+          );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Iuran gagal disimpan. Pastikan judul dan periode tidak duplikat. '
+            '$error',
+          ),
+        ),
+      );
+      setState(() => _saving = false);
+    }
+  }
 }

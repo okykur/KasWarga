@@ -78,42 +78,36 @@ class AnnouncementsPage extends ConsumerWidget {
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
-                            if (!readOnly) ...[
-                              IconButton(
-                                tooltip: 'Edit',
-                                onPressed: () => _showForm(
-                                  context,
-                                  ref,
-                                  profile: profile,
-                                  communityId: communityId,
-                                  announcement: item,
-                                ),
-                                icon: const Icon(Icons.edit_outlined),
-                              ),
-                              IconButton(
-                                tooltip: 'Hapus',
-                                onPressed: () async {
-                                  final confirmed =
-                                      await ConfirmationDialog.show(
-                                    context,
-                                    title: 'Hapus pengumuman?',
-                                    message:
-                                        'Pengumuman yang dihapus tidak dapat dikembalikan.',
-                                    confirmLabel: 'Hapus',
-                                    isDanger: true,
-                                  );
-                                  if (!confirmed) return;
-                                  await ref
-                                      .read(appRepositoryProvider)
-                                      .deleteAnnouncement(item.id);
-                                  ref.invalidate(announcementsProvider);
-                                },
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: AppColors.danger,
-                                ),
-                              ),
-                            ],
+                            MasterActions(
+                              onView: () => _showDetail(context, item),
+                              onEdit: readOnly
+                                  ? null
+                                  : () => _showForm(
+                                        context,
+                                        ref,
+                                        profile: profile,
+                                        communityId: communityId,
+                                        announcement: item,
+                                      ),
+                              onDelete: readOnly
+                                  ? null
+                                  : () async {
+                                      final confirmed =
+                                          await ConfirmationDialog.show(
+                                        context,
+                                        title: 'Hapus pengumuman?',
+                                        message:
+                                            'Pengumuman yang dihapus tidak dapat dikembalikan.',
+                                        confirmLabel: 'Hapus',
+                                        isDanger: true,
+                                      );
+                                      if (!confirmed) return;
+                                      await ref
+                                          .read(appRepositoryProvider)
+                                          .deleteAnnouncement(item.id);
+                                      ref.invalidate(announcementsProvider);
+                                    },
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -159,6 +153,41 @@ class AnnouncementsPage extends ConsumerWidget {
     );
     if (saved == true) ref.invalidate(announcementsProvider);
   }
+
+  Future<void> _showDetail(
+    BuildContext context,
+    Announcement announcement,
+  ) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Detail Pengumuman'),
+          content: SizedBox(
+            width: 540,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DetailRow(label: 'Judul', value: announcement.title),
+                DetailRow(
+                  label: 'Tanggal',
+                  value: AppFormatters.date(announcement.createdAt),
+                ),
+                DetailRow(
+                  label: 'Dipin',
+                  value: announcement.isPinned ? 'Ya' : 'Tidak',
+                ),
+                DetailRow(label: 'Isi', value: announcement.content),
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _AnnouncementForm extends ConsumerStatefulWidget {

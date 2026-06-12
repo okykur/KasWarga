@@ -652,7 +652,8 @@ class AppRepository {
     return rows.map(Due.fromJson).toList();
   }
 
-  Future<void> createDue({
+  Future<void> saveDue({
+    String? id,
     required String communityId,
     required String title,
     String? description,
@@ -671,13 +672,41 @@ class AppRepository {
       'due_date': _isoDate(dueDate),
     };
     if (isDemoMode) {
-      final id = _demo.upsert(_demo.dues, null, payload);
+      final duplicate = _demo.dues.any(
+        (row) =>
+            row['id'] != id &&
+            row['community_id'] == communityId &&
+            row['title'] == title.trim() &&
+            row['month'] == month &&
+            row['year'] == year,
+      );
+      if (duplicate) {
+        throw const TenantException(
+          'Iuran dengan judul dan periode tersebut sudah ada.',
+        );
+      }
+      final savedId = _demo.upsert(_demo.dues, id, payload);
+      if (id != null) {
+        for (final bill in _demo.bills.where(
+          (row) =>
+              row['dues_id'] == id &&
+              (row['status'] == 'unpaid' || row['status'] == 'rejected'),
+        )) {
+          bill['amount'] = amount;
+          bill['dues'] = {
+            'title': title.trim(),
+            'month': month,
+            'year': year,
+          };
+        }
+        return;
+      }
       for (final member in _demo.memberDetails.where(
         (row) =>
             row['community_id'] == communityId && row['status'] == 'active',
       )) {
         _demo.upsert(_demo.bills, null, {
-          'dues_id': id,
+          'dues_id': savedId,
           'community_id': communityId,
           'member_id': member['id'],
           'amount': amount,
@@ -690,6 +719,21 @@ class AppRepository {
       }
       return;
     }
+    if (id != null) {
+      await _client!.rpc(
+        'update_due_and_open_bills',
+        params: {
+          'target_due_id': id,
+          'new_title': title.trim(),
+          'new_description': _nullable(description),
+          'new_month': month,
+          'new_year': year,
+          'new_amount': amount,
+          'new_due_date': _isoDate(dueDate),
+        },
+      );
+      return;
+    }
     final row =
         await _client!.from('dues').insert(payload).select('id').single();
     await _client.rpc(
@@ -697,6 +741,25 @@ class AppRepository {
       params: {'target_due_id': row['id']},
     );
   }
+
+  Future<void> createDue({
+    required String communityId,
+    required String title,
+    String? description,
+    required int month,
+    required int year,
+    required double amount,
+    required DateTime dueDate,
+  }) =>
+      saveDue(
+        communityId: communityId,
+        title: title,
+        description: description,
+        month: month,
+        year: year,
+        amount: amount,
+        dueDate: dueDate,
+      );
 
   Future<List<Bill>> getBills({
     required String communityId,
@@ -846,6 +909,7 @@ class AppRepository {
   }
 
   Future<void> saveExpense({
+    String? id,
     required String communityId,
     required String title,
     String? description,
@@ -854,8 +918,9 @@ class AppRepository {
     required String userId,
     Uint8List? receiptBytes,
     String? receiptExtension,
+    String? existingReceiptPath,
   }) async {
-    String? receiptPath;
+    String? receiptPath = existingReceiptPath;
     if (!isDemoMode && receiptBytes != null && receiptExtension != null) {
       receiptPath =
           '$communityId/$userId/${DateTime.now().millisecondsSinceEpoch}.$receiptExtension';
@@ -878,12 +943,14 @@ class AppRepository {
       'amount': amount,
       'expense_date': _isoDate(expenseDate),
       'receipt_image_url': receiptPath,
-      'created_by': userId,
+      if (id == null) 'created_by': userId,
     };
     if (isDemoMode) {
-      _demo.upsert(_demo.expenses, null, payload);
-    } else {
+      _demo.upsert(_demo.expenses, id, payload);
+    } else if (id == null) {
       await _client!.from('expenses').insert(payload);
+    } else {
+      await _client!.from('expenses').update(payload).eq('id', id);
     }
   }
 

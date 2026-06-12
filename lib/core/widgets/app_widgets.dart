@@ -338,6 +338,93 @@ class ConfirmationDialog extends StatelessWidget {
       );
 }
 
+class MasterActions extends StatelessWidget {
+  const MasterActions({
+    super.key,
+    required this.onView,
+    this.onEdit,
+    this.onDelete,
+    this.deleteTooltip = 'Hapus',
+  });
+
+  final VoidCallback onView;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final String deleteTooltip;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        spacing: 2,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          IconButton(
+            tooltip: 'Lihat detail',
+            onPressed: onView,
+            icon: const Icon(Icons.visibility_outlined),
+          ),
+          if (onEdit != null)
+            IconButton(
+              tooltip: 'Edit',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          if (onDelete != null)
+            IconButton(
+              tooltip: deleteTooltip,
+              onPressed: onDelete,
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.danger,
+              ),
+            ),
+        ],
+      );
+}
+
+class DetailRow extends StatelessWidget {
+  const DetailRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 20, color: AppColors.muted),
+              const SizedBox(width: 10),
+            ],
+            SizedBox(
+              width: 130,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SelectableText(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});
   final BillStatus status;
