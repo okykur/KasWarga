@@ -308,6 +308,32 @@ Pastikan hosting:
 - Tidak menyimpan cache permanen untuk `flutter_service_worker.js`.
 - Menyimpan aset fingerprinted dengan cache jangka panjang.
 
+## Deploy ke IDCloudHost
+
+Panduan dan file deploy untuk 1 VPS IDCloudHost dengan domain
+`koneksi.co.id` tersedia di:
+
+```text
+deploy/idcloudhost/
+```
+
+Isi folder tersebut:
+
+- `README.md`: langkah DNS, Nginx, SSL, Supabase production, deploy, dan rollback.
+- `server-bootstrap.sh`: bootstrap VPS Ubuntu dengan Nginx dan Certbot.
+- `deploy-local.ps1`: build Flutter Web dari PC lokal lalu upload release ke VPS.
+- `nginx-http.conf` dan `nginx-ssl.conf`: template virtual host untuk PWA.
+
+Ringkasnya:
+
+```powershell
+.\deploy\idcloudhost\deploy-local.ps1 `
+  -ServerHost "IP_VPS_IDCLOUDHOST" `
+  -ServerUser "root" `
+  -SupabaseUrl "https://YOUR_PROJECT.supabase.co" `
+  -SupabaseAnonKey "YOUR_SUPABASE_ANON_KEY"
+```
+
 ## Catatan Keamanan
 
 - RLS aktif pada seluruh tabel.
