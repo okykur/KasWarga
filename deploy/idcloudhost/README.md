@@ -1,10 +1,9 @@
 # Deploy KasWarga ke IDCloudHost VPS
 
 Panduan ini men-deploy KasWarga sebagai Flutter Web/PWA di 1 instance VPS
-IDCloudHost dengan domain:
+IDCloudHost dengan subdomain:
 
-- `https://koneksi.co.id`
-- `https://www.koneksi.co.id`
+- `https://kaswarga.koneksi.co.id`
 
 Arsitektur yang disarankan:
 
@@ -41,24 +40,30 @@ sudo ./server-bootstrap.sh
 Script tersebut akan memasang Nginx, Certbot, membuat root web:
 
 ```text
-/var/www/koneksi.co.id/current
-/var/www/koneksi.co.id/releases
+/var/www/kaswarga.koneksi.co.id/current
+/var/www/kaswarga.koneksi.co.id/releases
 ```
 
 ## 2. Arahkan DNS domain
 
-Di DNS manager domain `koneksi.co.id`, buat record:
+Di DNS manager domain `koneksi.co.id`, buat salah satu opsi record berikut.
+
+Opsi A record langsung ke VPS:
 
 | Type | Name | Value |
 |---|---|---|
-| A | `@` | `IP_VPS_IDCLOUDHOST` |
-| A | `www` | `IP_VPS_IDCLOUDHOST` |
+| A | `kaswarga` | `IP_VPS_IDCLOUDHOST` |
+
+Opsi CNAME jika root `koneksi.co.id` sudah mengarah ke VPS yang sama:
+
+| Type | Name | Value |
+|---|---|---|
+| CNAME | `kaswarga` | `koneksi.co.id` |
 
 Tunggu propagasi DNS. Cek dari lokal:
 
 ```bash
-nslookup koneksi.co.id
-nslookup www.koneksi.co.id
+nslookup kaswarga.koneksi.co.id
 ```
 
 ## 3. Aktifkan SSL
@@ -66,7 +71,7 @@ nslookup www.koneksi.co.id
 Setelah DNS mengarah ke VPS:
 
 ```bash
-sudo certbot --nginx -d koneksi.co.id -d www.koneksi.co.id
+sudo certbot --nginx -d kaswarga.koneksi.co.id
 sudo certbot renew --dry-run
 ```
 
@@ -74,7 +79,7 @@ Certbot akan mengubah konfigurasi Nginx untuk HTTPS. Jika ingin memakai template
 manual, gunakan `nginx-ssl.conf` dan salin ke:
 
 ```bash
-sudo cp nginx-ssl.conf /etc/nginx/sites-available/koneksi.co.id
+sudo cp nginx-ssl.conf /etc/nginx/sites-available/kaswarga.koneksi.co.id
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -98,14 +103,14 @@ Script ini akan:
 1. Menjalankan `flutter build web --release`.
 2. Membuat ZIP dari `build/web`.
 3. Upload ZIP ke VPS via `scp`.
-4. Extract ke `/var/www/koneksi.co.id/releases/TIMESTAMP`.
-5. Mengarahkan symlink `/var/www/koneksi.co.id/current` ke release terbaru.
+4. Extract ke `/var/www/kaswarga.koneksi.co.id/releases/TIMESTAMP`.
+5. Mengarahkan symlink `/var/www/kaswarga.koneksi.co.id/current` ke release terbaru.
 6. Reload Nginx.
 
 Jika deploy sukses, buka:
 
 ```text
-https://koneksi.co.id
+https://kaswarga.koneksi.co.id
 ```
 
 ## 5. Konfigurasi Supabase production
@@ -127,10 +132,10 @@ Di Supabase project:
 3. Di Authentication URL Configuration, set:
 
    ```text
-   Site URL: https://koneksi.co.id
+   Site URL: https://kaswarga.koneksi.co.id
    Redirect URLs:
-   https://koneksi.co.id
-   https://koneksi.co.id/*
+   https://kaswarga.koneksi.co.id
+   https://kaswarga.koneksi.co.id/*
    ```
 
 4. Jangan pakai seed akun demo pada database production kecuali untuk staging.
@@ -142,13 +147,13 @@ Di VPS:
 ```bash
 sudo nginx -t
 sudo systemctl status nginx
-curl -I https://koneksi.co.id
-curl -I https://koneksi.co.id/flutter_service_worker.js
+curl -I https://kaswarga.koneksi.co.id
+curl -I https://kaswarga.koneksi.co.id/flutter_service_worker.js
 ```
 
 Ekspektasi:
 
-- `https://koneksi.co.id` return `200`.
+- `https://kaswarga.koneksi.co.id` return `200`.
 - Route Flutter seperti `/login`, `/admin/dashboard`, dan `/member/dashboard`
   tetap diarahkan ke `index.html`.
 - `flutter_service_worker.js` tidak di-cache permanen.
@@ -165,12 +170,12 @@ Untuk update aplikasi, cukup ulangi:
   -SupabaseAnonKey "YOUR_SUPABASE_ANON_KEY"
 ```
 
-Release lama tetap tersimpan di `/var/www/koneksi.co.id/releases`.
+Release lama tetap tersimpan di `/var/www/kaswarga.koneksi.co.id/releases`.
 
 Rollback manual:
 
 ```bash
-sudo ln -sfn /var/www/koneksi.co.id/releases/RELEASE_LAMA /var/www/koneksi.co.id/current
+sudo ln -sfn /var/www/kaswarga.koneksi.co.id/releases/RELEASE_LAMA /var/www/kaswarga.koneksi.co.id/current
 sudo nginx -t
 sudo systemctl reload nginx
 ```

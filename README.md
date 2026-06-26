@@ -310,8 +310,8 @@ Pastikan hosting:
 
 ## Deploy ke IDCloudHost
 
-Panduan dan file deploy untuk 1 VPS IDCloudHost dengan domain
-`koneksi.co.id` tersedia di:
+Panduan dan file deploy untuk 1 VPS IDCloudHost dengan subdomain
+`kaswarga.koneksi.co.id` tersedia di:
 
 ```text
 deploy/idcloudhost/

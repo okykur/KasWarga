@@ -106,13 +106,13 @@ http://127.0.0.1:8080
    curl -I http://127.0.0.1:8080
    ```
 
-## Reverse proxy domain koneksi.co.id
+## Reverse proxy domain kaswarga.koneksi.co.id
 
 Salin reverse proxy:
 
 ```bash
-sudo cp deploy/docker/nginx-host-proxy.conf /etc/nginx/sites-available/koneksi.co.id
-sudo ln -sfn /etc/nginx/sites-available/koneksi.co.id /etc/nginx/sites-enabled/koneksi.co.id
+sudo cp deploy/docker/nginx-host-proxy.conf /etc/nginx/sites-available/kaswarga.koneksi.co.id
+sudo ln -sfn /etc/nginx/sites-available/kaswarga.koneksi.co.id /etc/nginx/sites-enabled/kaswarga.koneksi.co.id
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -121,13 +121,12 @@ Pastikan DNS:
 
 | Type | Name | Value |
 |---|---|---|
-| A | `@` | `IP_VPS_IDCLOUDHOST` |
-| A | `www` | `IP_VPS_IDCLOUDHOST` |
+| A | `kaswarga` | `IP_VPS_IDCLOUDHOST` |
 
 Aktifkan SSL:
 
 ```bash
-sudo certbot --nginx -d koneksi.co.id -d www.koneksi.co.id
+sudo certbot --nginx -d kaswarga.koneksi.co.id
 sudo certbot renew --dry-run
 ```
 
@@ -173,20 +172,20 @@ docker compose --env-file deploy/docker/.env.production \
 ## Health check
 
 ```bash
-curl -I https://koneksi.co.id
-curl -I https://koneksi.co.id/flutter_service_worker.js
+curl -I https://kaswarga.koneksi.co.id
+curl -I https://kaswarga.koneksi.co.id/flutter_service_worker.js
 docker inspect --format='{{json .State.Health}}' kaswarga-web
 ```
 
 ## Supabase production checklist
 
 - Jalankan migration terbaru ke Supabase production.
-- Set Auth Site URL ke `https://koneksi.co.id`.
+- Set Auth Site URL ke `https://kaswarga.koneksi.co.id`.
 - Tambahkan Redirect URLs:
 
   ```text
-  https://koneksi.co.id
-  https://koneksi.co.id/*
+  https://kaswarga.koneksi.co.id
+  https://kaswarga.koneksi.co.id/*
   ```
 
 - Pastikan bucket `payment_proofs` dan `expense_receipts` tersedia.

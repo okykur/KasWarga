@@ -3,7 +3,7 @@ param(
   [string]$ServerHost,
 
   [string]$ServerUser = "root",
-  [string]$Domain = "koneksi.co.id",
+  [string]$Domain = "kaswarga.koneksi.co.id",
 
   [Parameter(Mandatory = $true)]
   [string]$SupabaseUrl,

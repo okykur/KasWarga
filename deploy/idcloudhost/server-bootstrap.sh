@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-koneksi.co.id}"
-WWW_DOMAIN="${WWW_DOMAIN:-www.koneksi.co.id}"
+DOMAIN="${DOMAIN:-kaswarga.koneksi.co.id}"
+EXTRA_DOMAINS="${EXTRA_DOMAINS:-}"
 WEB_ROOT="/var/www/${DOMAIN}"
 APP_ROOT="${WEB_ROOT}/current"
+SERVER_NAMES="${DOMAIN} ${EXTRA_DOMAINS}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "Jalankan script ini dengan sudo."
@@ -21,7 +22,7 @@ cat > "/etc/nginx/sites-available/${DOMAIN}" <<NGINX
 server {
     listen 80;
     listen [::]:80;
-    server_name ${DOMAIN} ${WWW_DOMAIN};
+    server_name ${SERVER_NAMES};
 
     root ${APP_ROOT};
     index index.html;
@@ -59,6 +60,6 @@ systemctl enable nginx
 systemctl reload nginx
 
 echo "Bootstrap selesai."
-echo "Pastikan DNS A record ${DOMAIN} dan ${WWW_DOMAIN} sudah mengarah ke IP VPS."
+echo "Pastikan DNS A/CNAME record ${DOMAIN} sudah mengarah ke IP VPS."
 echo "Setelah DNS aktif, jalankan:"
-echo "sudo certbot --nginx -d ${DOMAIN} -d ${WWW_DOMAIN}"
+echo "sudo certbot --nginx -d ${DOMAIN}"
