@@ -334,6 +334,33 @@ Ringkasnya:
   -SupabaseAnonKey "YOUR_SUPABASE_ANON_KEY"
 ```
 
+## Deploy dengan Docker
+
+Untuk DevOps yang ingin memakai container, tersedia opsi Docker production di:
+
+```text
+Dockerfile
+deploy/docker/
+```
+
+Image dibuat dengan multi-stage build: Flutter Web dikompilasi pada stage build,
+lalu output `build/web` diserve oleh Nginx Alpine. Contoh:
+
+```bash
+docker build \
+  --build-arg SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
+  --build-arg SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY" \
+  --build-arg APP_ENV="production" \
+  -t kaswarga-web:latest .
+
+docker compose --env-file deploy/docker/.env.production \
+  -f deploy/docker/compose.yaml up -d --build
+```
+
+Karena Flutter Web memakai compile-time `--dart-define`, perubahan Supabase URL
+atau anon key membutuhkan rebuild image. Jangan pernah memakai service role key
+di Docker build frontend.
+
 ## Catatan Keamanan
 
 - RLS aktif pada seluruh tabel.

@@ -1,0 +1,17 @@
+.dart_tool/
+.git/
+.github/
+.tools/
+build/
+coverage/
+deploy/idcloudhost/
+test/
+
+.env
+.env.*
+!.env.example
+
+*.log
+*.tmp
+*.zip
+README.local.md

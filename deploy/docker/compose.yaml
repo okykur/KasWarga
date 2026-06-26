@@ -1,0 +1,20 @@
+services:
+  kaswarga-web:
+    container_name: kaswarga-web
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL wajib diisi}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY wajib diisi}
+        APP_ENV: ${APP_ENV:-production}
+    image: ${KASWARGA_IMAGE:-kaswarga-web:latest}
+    restart: unless-stopped
+    ports:
+      - "${KASWARGA_BIND:-127.0.0.1:8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
